@@ -1,0 +1,33 @@
+pylon_debug>ci
+@
+ -----------------------------------
+ US0 Rx:                     0
+ US0 Tx:                     0
+ US0 Format:                 0
+ US0 Addr:                   0
+ US0 Ver:                    0
+ US0 Req:                    0
+ US0 LChkSum:                0
+ US0 ChkSum:                 0
+ US0 AckErr:                 0
+ US0 Other:                  0
+
+ US1 Rx:                     48830643
+ US1 Tx:                     12209023
+ US1 Format:                 0
+ US1 Addr:                   0
+ US1 Ver:                    0
+ US1 Req:                    0
+ US1 LChkSum:                0
+ US1 ChkSum:                 0
+ US1 AckErr:                 0
+ US1 Other:                  0
+
+ CAN Rx:                        0
+ CAN Tx:                        73249320
+ Exist Pack Num:             5
+ Probe Pwr Addr:             255
+ -----------------------------------
+Command completed successfully
+$$
+pylon_debug>
