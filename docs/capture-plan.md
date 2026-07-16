@@ -28,8 +28,8 @@ This document defines the capture sequence for the initial protocol specificatio
 - [x] pwr 1
 - [x] pwr 2
 - [x] pwr 3
-- [ ] pwr 4
-- [ ] pwr 5
+- [x] pwr 4
+- [x] pwr 5
 - [ ] getpwr
 - [ ] pwrsys
 - [ ] ci
