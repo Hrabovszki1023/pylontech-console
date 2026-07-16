@@ -19,7 +19,7 @@ This document defines the capture sequence for the initial protocol specificatio
 - [x] bat 2
 - [x] bat 3
 - [x] bat 4
-- [ ] bat 5
+- [x] bat 5
 - [ ] stat
 - [ ] time
 
