@@ -1,0 +1,21 @@
+pylon_debug>bat 3
+@
+Battery  Volt     Curr     Tempr    Base State   Volt. State  Curr. State  Temp. State  SOC          Coulomb      BAL
+0        3317     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+1        3318     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+2        3317     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+3        3317     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+4        3317     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+5        3318     -2176    27000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+6        3318     -2176    27000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+7        3318     -2176    27000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+8        3318     -2176    27000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+9        3320     -2176    27000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+10       3319     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+11       3319     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+12       3319     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+13       3320     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+14       3320     -2176    26000    Dischg       Normal       Normal       Normal       95%         44698 mAH      N
+Command completed successfully
+$$
+pylon_debug>
