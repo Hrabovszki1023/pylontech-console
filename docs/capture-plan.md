@@ -31,7 +31,7 @@ This document defines the capture sequence for the initial protocol specificatio
 - [x] pwr 4
 - [x] pwr 5
 - [x] getpwr
-- [ ] pwrsys
+- [x] pwrsys
 - [ ] ci
 - [ ] soh 1
 - [ ] soh 2
