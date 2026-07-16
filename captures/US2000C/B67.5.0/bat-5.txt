@@ -1,0 +1,25 @@
+# Device: Pylontech US2000C
+# Main firmware: B67.5.0
+# Command: bat 5
+
+pylon_debug>bat 5
+@
+Battery  Volt     Curr     Tempr    Base State   Volt. State  Curr. State  Temp. State  SOC          Coulomb      BAL
+0        3315     -3428    23800    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+1        3314     -3428    23800    Dischg       Normal       Normal       Normal       94%         44387 mAH      N
+2        3314     -3428    23800    Dischg       Normal       Normal       Normal       94%         44387 mAH      N
+3        3314     -3428    23800    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+4        3313     -3428    23800    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+5        3315     -3428    23600    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+6        3314     -3428    23600    Dischg       Normal       Normal       Normal       94%         44387 mAH      N
+7        3315     -3428    23600    Dischg       Normal       Normal       Normal       94%         44362 mAH      N
+8        3314     -3428    23600    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+9        3314     -3428    23600    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+10       3315     -3428    23400    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+11       3315     -3428    23400    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+12       3315     -3428    23400    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+13       3314     -3428    23400    Dischg       Normal       Normal       Normal       94%         44387 mAH      N
+14       3314     -3428    23400    Dischg       Normal       Normal       Normal       94%         44383 mAH      N
+Command completed successfully
+$$
+pylon_debug>
