@@ -1,0 +1,30 @@
+# Device: Pylontech US2000C
+# Board version: V10R04
+# Main firmware: B67.5.0
+# Software version: V1.7
+# Transport: RS232 over TCP
+# Command: getpwr
+
+>pylon_debug>getpwr
+@
+49768#  -2632#  29300# 43259# Dischg# Normal# Normal# Normal#
+3317#  26300# Normal# Normal#
+3318#  26300# Normal# Normal#
+3318#  26300# Normal# Normal#
+3318#  26300# Normal# Normal#
+3317#  26300# Normal# Normal#
+3318#  26500# Normal# Normal#
+3318#  26500# Normal# Normal#
+3318#  26500# Normal# Normal#
+3318#  26500# Normal# Normal#
+3318#  26500# Normal# Normal#
+3318#  26000# Normal# Normal#
+3318#  26000# Normal# Normal#
+3318#  26000# Normal# Normal#
+3318#  26000# Normal# Normal#
+3318#  26000# Normal# Normal#
+0#
+666#
+Command completed successfully
+$$
+pylon_debug>
