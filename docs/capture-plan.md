@@ -25,7 +25,7 @@ This document defines the capture sequence for the initial protocol specificatio
 
 ## Phase 2 - Extended Observation
 
-- [ ] pwr 1
+- [x] pwr 1
 - [ ] pwr 2
 - [ ] pwr 3
 - [ ] pwr 4
