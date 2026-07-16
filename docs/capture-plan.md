@@ -13,7 +13,7 @@ This document defines the capture sequence for the initial protocol specificatio
 ## Phase 1 - Core Commands
 
 - [x] help
-- [ ] info
+- [x] info
 - [ ] pwr
 - [ ] bat 1
 - [ ] bat 2
