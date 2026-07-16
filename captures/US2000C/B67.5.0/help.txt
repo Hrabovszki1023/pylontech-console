@@ -1,0 +1,135 @@
+# Device: Pylontech US2000C
+# Main firmware: B67.5.0
+# Transport: RS232 over TCP
+# Command: help
+
+pylon_debug>help
+@
+Local command:
+adc      Addr show - adc
+bat      Battery data show - bat [pwr][index]
+ci       Current Comm Info
+config   config [pov/povr/phv/phvr/plv/plvr/puv/puvr/pslp/bov/bovr/bhv/bhvr/blv/blvr/buv/buvr/bslp/bsv/bv
+ /bot/botr/bht/bhtr/blt/bltr/but/butr/coc/coca/cocar
+ /eot/eotr/eht/ehtr/elt/eltr/eut/eutr/doc/doca/docar/ocd/ocr/oc2d/oc2r/sc/scd/scr/clc
+ /recinv/shuttime/uvtime/save/default][val]
+ /[sleep/record][on/off/day/week/month][starttime][endtime]
+ /[hwsleep][<on/off>][sleeptime][wakeuptime]
+tcycle   test cycle times - tcycle [cycle times]
+fullchg  change full charge time - tfullchg [full charge time]
+ct       Track Comm Port Data [Port Number]
+ctrl     Contrl IO - ctrl [cfet/dfet/buzz/heat/afuse] [on/off]
+bmicrdcomm BMIC read comm - bmicrdcomm [total_ic]
+bmicrdcfg BMIC read cfg - bmicrdcfg [total_ic]
+data     History data load - data [event/history][item]
+datac    Clear data - datac [event/history]
+datalist Show recorded data - datalist [event/history][item/bat][batnun][volt/curr/temp/coul][item]
+disp     Display Info at regular intervals - disp [(pwrs pwrNo)/val]/[(bats batNo)/volt/curr/temp]
+eepe     EEPROM erase - eepe [chip]
+eepr     EEPROM read - eepr [chip][Offset][size]
+eepw     EEPROM write - eepw [chip][Offset][Val][size]
+stflar   STFLASH read - bspeepr [chip][Offset][size]
+stflaw   STFLASH write - bspeepw [chip][Offset][Val]
+flae     Extend flash erase - flae [chip]
+flar     Extend flash read - flar [chip][Offset][size]
+flaw     Extend flash write - flaw [chip][Offset][Val]
+getpwr   Get power Info - getpwr
+help     Help [cmd]
+info     Device infomation - info
+log      Log information show - log
+login    Login Admin mode - login [password]
+logc     Log clear - logc
+logout   user mode  - logout
+logt     Log test - logt [data]
+md       Memory dump - md [width][Addr][size]
+mm       Memory set - mm [width][Addr][Val]
+m2s      Master updata to Slave  - m2s
+prot     Protect ctrl - prot [bov/bhv/blv/buv/pov/phv/plv/puv/cbot/cbht/cblt/cbut/dbot/dbht/dblt/dbut/pot/pht/plt/put/coc/coc2/coca/doc/doc2/doca/sc/buzz/smartchg/default][en/dis]
+pwr      Power data show - pwr [index]
+re       Send Command To the Specified Power - re [addr][command]
+rtcr     RTC read - rtcr [Offset]
+rtcw     RTC write - rtcw [Offset][Val]
+rtcsh    RTC show reg -rtcsh
+save     Save data - save [event/history]
+setprt   set protocol type - setprt [sma/lg]
+setlowcfg set Low config- setlowcfg [save] / [shutsoc/sstime] [num]
+socr     SOC read - socr[Offset]
+socw     SOC write - socw [Offset][Val]
+socsh    SOC show reg -socsh
+soccfg   SOC config - soccfg[subclass][Offset][value]
+soccal   SOC calibration - soccal [volt/current/tempr/ccoffset/bdoffset] [value]
+socd     SOC show data - socd
+tsoc     bq34z100 test - tsoc
+socclr   clear bq34z100 data flash  and reload default value - socclr
+soct     SOC show Ra table - soct
+shut     Shut down - shut
+soh      State of health - soh [addr]
+stat     Statistic data show - stat
+statc    Clear statistic - statc
+tsoftdsg Test Soft DSG - tsoftdsg
+tbar     Test write Barcode - tbar[reg]
+tbuz     Test Buzzer - tbuz
+tchgc    test Charge current - tchgc
+tclear   test clear record on chip- tclear
+tpv      Test pack volt - tpv
+tsw      Test switch - tsw
+tfacsoc  Test factory soc - tfacsoc
+ttact    Test button - ttact
+ttr      Test terminal resistor - ttr
+rebat    relieve bat err - rebat
+tibcio   Test ibc io - tibcio [nc/sc]
+tcan     Test can port - tcan [port#]
+tcbnio   Test cbn io - tcbnio [nc/sc]
+tdip     Test Dip - tdip [flag]
+tdisc    test discharge current - tdisc
+teepr    Device EEPROM test - teepr
+tetmp    test enviroment temperature - tetmp
+tflash   Device Flash test - tflash
+ti2c     I2C test - ti2c
+time     Time - time [year] [month] [day] [hour] [minute] [second]
+tinput   test input state - tinput [rv/dcov/absent/present]
+tled     Test Led - tled [0/lednum/on/off] [on/off]
+tmos     test mosfet - tmos [cfet/dfet]
+tmprctrl Bat tmpr ctrl - tmprctrl [flag]/[flag][batid][val]
+trst     Test Soft Reset - trst
+tpwr     test the total voltage of the power - tpwr
+tsto     test selftest output - tsto
+tver     test soft version - tver[version]
+tsoh     test soh - tsoh
+tspi     SPI test - tspi
+tusart   Usart test - tusart
+ttmp     test battery temperature - ttmp
+tdct     Test dry ct - tdct
+tbld     Test bleeding - tbld [val]
+updata   updata system - updata
+tvolt    test battery voltage - tvolt
+twdg     Stop feeding watchdog - wdg
+emptyvolt Set empty volt - emptyvolt [val]
+blocksoc set block soc - blocksoc [val]
+totalcoul Set total coul - totalcoul [val]
+pwrsys   power system info display
+urates   Set R485 Port Rate - urates [500000/115200/9600]
+tagevolt test age volt
+trdagevolt read age volt
+**********************************************************
+Remote command:
+config   config [pov/povr/phv/phvr/plv/plvr/puv/puvr/pslp/bov/bovr/bhv/bhvr/blv/blvr/buv/buvr/bslp/bsv/bv
+ /bot/botr/bht/bhtr/blt/bltr/but/butr/coc/coca/cocar
+ /eot/eotr/eht/ehtr/elt/eltr/eut/eutr/doc/doca/docar/ocd/ocr/oc2d/oc2r/sc/scd/scr/clc
+ /recinv/shuttime/uvtime/save/default][val]
+ /[sleep/record][on/off/day/week/month][starttime][endtime]
+ /[hwsleep][<on/off>][sleeptime][wakeuptime]
+ctrl     Contrl IO - ctrl [cfet/dfet/buzz/heat/afuse] [on/off]
+data     History data load - data [event/history][item]
+emptyvolt Set empty volt - emptyvolt [val]
+info     Device infomation - info
+login    Login Admin mode - login [password]
+logout   user mode  - logout
+prot     Protect ctrl - prot [bov/bhv/blv/buv/pov/phv/plv/puv/cbot/cbht/cblt/cbut/dbot/dbht/dblt/dbut/pot/pht/plt/put/coc/coc2/coca/doc/doc2/doca/sc/buzz/smartchg/default][en/dis]
+couls    Coulomb calc type - couls [iah/vah/asic/default]
+soh      State of health - soh [addr]
+stat     Statistic data show - stat
+statc    Clear statistic - statc
+Command completed successfully
+$$
+pylon_debug>
