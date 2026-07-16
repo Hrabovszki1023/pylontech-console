@@ -1,0 +1,28 @@
+pylon_debug>pwr 4
+@
+ ----------------------------
+ Power  4
+
+ Voltage         : 49810       mV
+ Current         : -1928       mA
+ Temperature     : 28000       mC
+ Coulomb         : 94          %
+ Total Coulomb   : 50000       mAH
+ Max Voltage     : 54000       mV
+ Charge Times    : 0
+ Basic Status    : Dischg
+ Discharge Sec.  : 0       s
+ Volt Status     : Normal
+ Current Status  : Normal
+ Tmpr. Status    : Normal
+ Coul. Status    : Normal
+ Soh. Status     : Normal
+ Heater Status   : OFF
+ Protect ENA     : BOV BHV BLV BUV POV PHV PLV PUV CBOT CBHT CBLT CBUT DBOT DBHT DBLT DBUT POT PHT PLT PUT COC COC2 COCA DOCA DOC DOC2 SC LCOUL
+ Bat Events      : 0x0
+ Power Events    : 0x0
+ System Fault    : 0x0
+ ----------------------------
+Command completed successfully
+$$
+pylon_debug>
