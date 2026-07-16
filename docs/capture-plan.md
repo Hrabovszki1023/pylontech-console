@@ -21,7 +21,7 @@ This document defines the capture sequence for the initial protocol specificatio
 - [x] bat 4
 - [x] bat 5
 - [x] stat
-- [ ] time
+- [x] time
 
 ## Phase 2 - Extended Observation
 
