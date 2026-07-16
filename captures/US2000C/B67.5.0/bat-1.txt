@@ -1,0 +1,26 @@
+# Device: Pylontech US2000C
+# Main firmware: B67.5.0
+# Transport: RS232 over TCP
+# Command: bat 1
+
+pylon_debug>bat 1
+@
+Battery  Volt     Curr     Tempr    Base State   Volt. State  Curr. State  Temp. State  SOC          Coulomb      BAL
+0        3316     -2964    26400    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+1        3316     -2964    26400    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+2        3316     -2964    26400    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+3        3316     -2964    26400    Dischg       Normal       Normal       Normal       96%         44632 mAH      N
+4        3315     -2964    26400    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+5        3316     -2964    26600    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+6        3316     -2964    26600    Dischg       Normal       Normal       Normal       96%         44632 mAH      N
+7        3316     -2964    26600    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+8        3316     -2964    26600    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+9        3315     -2964    26600    Dischg       Normal       Normal       Normal       96%         44632 mAH      N
+10       3316     -2964    26000    Dischg       Normal       Normal       Normal       96%         44606 mAH      N
+11       3316     -2964    26000    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+12       3316     -2964    26000    Dischg       Normal       Normal       Normal       96%         44632 mAH      N
+13       3316     -2964    26000    Dischg       Normal       Normal       Normal       96%         44632 mAH      N
+14       3315     -2964    26000    Dischg       Normal       Normal       Normal       96%         44628 mAH      N
+Command completed successfully
+$$
+pylon_debug>
