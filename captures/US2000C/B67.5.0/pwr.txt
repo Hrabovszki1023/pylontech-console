@@ -1,0 +1,27 @@
+# Device: Pylontech US2000C
+# Main firmware: B67.5.0
+# Transport: RS232 over TCP
+# Command: pwr
+
+pylon_debug>pwr
+@
+Power Volt   Curr   Tempr  Tlow   Thigh  Vlow   Vhigh  Base.St  Volt.St  Curr.St  Temp.St  Coulomb  Time                 B.V.St   B.T.St   MosTempr M.T.St
+1     49726  -3037  29300  26000  26600  3315   3316   Dischg   Normal   Normal   Normal   96%      2026-07-17 01:20:56  Normal   Normal  27100    Normal
+2     49725  -2700  29100  26600  27100  3314   3316   Dischg   Normal   Normal   Normal   96%      2026-07-17 01:20:55  Normal   Normal  27100    Normal
+3     49767  -2348  29000  26000  27000  3316   3319   Dischg   Normal   Normal   Normal   96%      2026-07-17 01:20:55  Normal   Normal   -        -
+4     49768  -2189  28000  26000  26000  3317   3320   Dischg   Normal   Normal   Normal   96%      2026-07-17 01:20:55  Normal   Normal   -        -
+5     49679  -3598  26000  23400  23800  3311   3313   Dischg   Normal   Normal   Normal   95%      2026-07-17 01:20:54  Normal   Normal  24600    Normal
+6     -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+7     -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+8     -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+9     -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+10    -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+11    -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+12    -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+13    -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+14    -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+15    -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+16    -      -      -      -      -      -      -      Absent   -        -        -        -        -                    -        -
+Command completed successfully
+$$
+pylon_debug>
