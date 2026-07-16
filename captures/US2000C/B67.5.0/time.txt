@@ -1,0 +1,11 @@
+# Device: Pylontech US2000C
+# Main firmware: B67.5.0
+# Command: time
+
+pylon_debug>time
+@
+RTC 2026-07-17 01:40:48
+Test result:pass
+Command completed successfully
+$$
+pylon_debug>
