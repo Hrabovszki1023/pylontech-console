@@ -16,7 +16,7 @@ This document defines the capture sequence for the initial protocol specificatio
 - [x] info
 - [x] pwr
 - [x] bat 1
-- [ ] bat 2
+- [x] bat 2
 - [ ] bat 3
 - [ ] bat 4
 - [ ] bat 5
