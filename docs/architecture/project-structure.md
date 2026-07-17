@@ -60,6 +60,7 @@ pylontech-console/
 │               └── __init__.py
 └── tests/
     ├── unit/
+    │   ├── test_smoke.py
     │   ├── transport/
     │   ├── framing/
     │   ├── parsers/
@@ -114,13 +115,31 @@ The skeleton decisions are fixed as follows:
 
 - Build backend: Hatchling.
 - Initial package version: `0.0.0`.
+- Authoritative local entry command: `python -m pylontech_console.main`.
 - Authoritative test command: `python -m pytest`.
+- Compose service name: `pylontech-console`.
+- `tests/unit/test_smoke.py` provides the minimum test required to verify that the package is importable; it contains no business-logic test.
 - `main.py` provides only a short-lived no-op smoke entry point.
 - The no-op entry point exits with status code `0`.
 - Local execution, Docker and Compose use the same no-op entry point.
 - The Docker container and Compose service are expected to complete successfully with status code `0`; they are not long-running services in Issue #1.
 
 The entry point shall not expose functional service behavior.
+
+## Issue #1 verification commands
+
+The skeleton is accepted using these commands:
+
+```text
+python -m pip install -e ".[dev]"
+python -m pytest
+python -m pylontech_console.main
+docker build -t pylontech-console .
+docker run --rm pylontech-console
+docker compose run --rm pylontech-console
+```
+
+Each of the last four execution commands shall complete with exit status `0`. The Docker image and Compose service shall invoke `python -m pylontech_console.main`.
 
 ## Change control
 
