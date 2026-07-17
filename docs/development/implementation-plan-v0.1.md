@@ -10,22 +10,33 @@ Each step shall produce a usable and testable result. Later layers shall use the
 
 ## Step 1: Project skeleton
 
-Create the Python package and development infrastructure:
+Create only the Python package and development infrastructure defined in `docs/architecture/project-structure.md`:
 
-- `pyproject.toml`,
+- `pyproject.toml` using Hatchling as the build backend,
+- initial package version `0.0.0`,
 - source package layout,
 - pytest configuration,
 - Ruff and mypy configuration,
-- basic application entry point,
-- initial Dockerfile and Compose file,
-- configuration model with safe defaults.
+- a short-lived no-op application entry point that exits with status code `0`,
+- initial Dockerfile and Compose file using the same no-op entry point.
 
-Result: the empty service starts locally and in Docker and exposes a health endpoint.
+The authoritative test command is:
+
+```text
+python -m pytest
+```
+
+The local entry point, Docker container and Compose service shall execute the same no-op smoke behavior and exit successfully with status code `0`.
+
+Do not implement a configuration model or health endpoint in this step.
+
+Result: the skeleton installs and builds, the test command runs successfully, and the same no-op smoke entry point succeeds locally, in Docker and through Compose.
 
 ## Step 2: TCP transport and response framing
 
-Implement communication with the Waveshare gateway:
+Implement the validated configuration required by the transport and communication with the Waveshare gateway:
 
+- configuration model for Waveshare host, port and transport timeouts,
 - TCP connect and disconnect,
 - one serialized command queue,
 - command terminator,
@@ -108,6 +119,7 @@ Result: current rack, module and cell values are continuously available.
 
 Expose the current internal state:
 
+- a read-only health endpoint,
 - service health,
 - rack overview,
 - current position mapping,
