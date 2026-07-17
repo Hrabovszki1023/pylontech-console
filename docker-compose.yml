@@ -1,0 +1,4 @@
+services:
+  pylontech-console:
+    build: .
+    command: python -m pylontech_console.main
