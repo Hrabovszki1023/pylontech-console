@@ -110,7 +110,17 @@ Issue #1 does not implement:
 - web UI,
 - polling or other business logic.
 
-A minimal application entry point may exist only to verify packaging and process startup. It shall not expose functional service behavior.
+The skeleton decisions are fixed as follows:
+
+- Build backend: Hatchling.
+- Initial package version: `0.0.0`.
+- Authoritative test command: `python -m pytest`.
+- `main.py` provides only a short-lived no-op smoke entry point.
+- The no-op entry point exits with status code `0`.
+- Local execution, Docker and Compose use the same no-op entry point.
+- The Docker container and Compose service are expected to complete successfully with status code `0`; they are not long-running services in Issue #1.
+
+The entry point shall not expose functional service behavior.
 
 ## Change control
 
