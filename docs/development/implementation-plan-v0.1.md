@@ -26,7 +26,11 @@ The authoritative test command is:
 python -m pytest
 ```
 
-The local entry point, Docker container and Compose service shall execute the same no-op smoke behavior and exit successfully with status code `0`.
+The local entry point, Docker container and Compose service shall execute the same no-op smoke behavior through `python -m pylontech_console.main` and exit successfully with status code `0`.
+
+The Compose service is named `pylontech-console`. A minimal `tests/unit/test_smoke.py` verifies only that the package is importable so that `python -m pytest` has a successful skeleton test.
+
+The authoritative repository layout and verification commands are defined in `docs/architecture/project-structure.md`. Step 1 and Issue #1 shall use those commands without substitutions.
 
 Do not implement a configuration model or health endpoint in this step.
 
