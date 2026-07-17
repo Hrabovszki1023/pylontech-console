@@ -8,6 +8,10 @@ version = "0.0.0"
 description = "Pylontech Console reference implementation"
 readme = "README.md"
 requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+]
 
 [project.optional-dependencies]
 dev = [
