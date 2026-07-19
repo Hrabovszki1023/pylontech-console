@@ -17,7 +17,7 @@ class WaveshareSettings(BaseSettings):
     host: NonEmptyString
     port: int = Field(default=4196, ge=1, le=65535)
     connect_timeout_seconds: float = Field(default=5, gt=0)
-    response_timeout_seconds: float = Field(default=3, gt=0)
+    response_timeout_seconds: float = Field(default=5, gt=0)
 
 
 def load_waveshare_settings() -> WaveshareSettings:

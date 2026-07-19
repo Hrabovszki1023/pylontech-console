@@ -39,7 +39,7 @@ def test_uses_documented_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert settings.port == 4196
     assert settings.connect_timeout_seconds == 5
-    assert settings.response_timeout_seconds == 3
+    assert settings.response_timeout_seconds == 5
 
 
 def test_rejects_missing_host(monkeypatch: pytest.MonkeyPatch) -> None:
