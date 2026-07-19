@@ -392,6 +392,9 @@ For each module, the interface shall display at minimum:
 
 Version 0.1 shall provide a read-only REST API for the same current state shown on the web page and published through MQTT.
 
+The concrete endpoint, serialization, error, lifecycle, configuration and
+verification contract is defined in `rest-api-v0.1.md`.
+
 Minimum conceptual endpoints:
 
 ```text
