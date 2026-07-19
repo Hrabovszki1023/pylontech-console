@@ -25,3 +25,30 @@ Initially verified commands:
 - `time`
 
 A command must not be described as safe or read-only solely because its name appears harmless. Classification must be based on observed behavior or reliable documentation.
+
+## Parser input boundary
+
+Command specifications and stored captures document the complete observed
+console exchange, including command echo, framing markers and the following
+prompt. This does not make those elements part of command-specific parser
+input.
+
+The framing layer owns:
+
+- ignoring command echo and prompt text outside a response,
+- recognizing `@` as the response start marker,
+- recognizing `$$` as the response end marker,
+- rejecting incomplete responses,
+- removing the framing markers and adjacent line endings.
+
+Command-specific parsers receive only the complete payload returned by the
+framing layer. Parser input therefore excludes command echo, prompt, `@` and
+`$$`, but includes the protocol confirmation line:
+
+```text
+Command completed successfully
+```
+
+Each command-specific parser validates that confirmation according to its
+command contract. Framing behavior and incomplete-marker cases remain tests of
+the framing layer rather than command-specific parser tests.

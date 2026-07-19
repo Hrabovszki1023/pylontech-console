@@ -107,10 +107,11 @@ A changed address with an unchanged barcode represents a moved module, not a new
 
 A parser for specification version 0.1 shall:
 
-- ignore the echoed command before `@`,
-- start collecting the response payload at `@`,
-- stop collecting the response payload at `$$`,
-- treat a missing `@` or `$$` as an incomplete or invalid response,
+- consume only the complete payload returned by the framing layer, as defined
+  in [`protocol/README.md`](README.md),
+- exclude command echo, prompt and the `@` and `$$` framing markers from parser
+  input,
+- retain and validate `Command completed successfully` as part of the payload,
 - accept arbitrary spacing around the colon,
 - preserve unknown fields rather than discard them,
 - parse current fields by removing the `mA` suffix,
