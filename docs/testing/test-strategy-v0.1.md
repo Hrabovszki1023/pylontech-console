@@ -21,9 +21,31 @@ Provide sufficient evidence that the service:
 
 ## Test levels
 
-### 1. Parser unit tests
+### 1. Framing and parser unit tests
 
 Use the files under `captures/` as immutable input fixtures.
+
+#### Framing unit tests
+
+The framing layer receives the raw terminal stream and returns only the payload
+between `@` and `$$`. The framing markers themselves are not part of the
+returned payload. The line `Command completed successfully` is inside the
+framed payload and must be retained for the parser.
+
+Test at least:
+
+- complete payload extraction between `@` and `$$`,
+- incomplete response without `@` or `$$`,
+- framing markers omitted from the returned payload,
+- `Command completed successfully` retained in the returned payload,
+- terminal echo and prompt ignored outside the framed payload,
+- terminal artifacts such as `<INTERRUPT>` ignored outside the framed payload.
+
+#### Parser unit tests
+
+Parser tests pass only the payload returned by the framing layer. Parser input
+therefore excludes `@`, `$$`, command echo, prompt and terminal artifacts, but
+includes `Command completed successfully`.
 
 Required parser coverage:
 
@@ -41,10 +63,7 @@ Test at least:
 - missing values represented by `-`,
 - variable whitespace,
 - unknown additional fields,
-- incomplete response without `@` or `$$`,
-- failed command response,
-- terminal echo and prompt outside the framed payload,
-- terminal artifacts such as `<INTERRUPT>` ignored outside the payload.
+- failed or missing `Command completed successfully`.
 
 ### 2. Domain and discovery tests
 
