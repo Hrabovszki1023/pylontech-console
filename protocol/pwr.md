@@ -99,7 +99,8 @@ The indexed form returns a separator-delimited key/value block for one module ra
 | `Max Voltage` | `54000` | `mV` | observed; exact semantics unresolved |
 | `Charge Times` | `26076` | integer counter/value | observed; semantics unresolved |
 | `Basic Status` | `Dischg` | state string | observed |
-| `Discharge Sec.` | `3320` | `s` | observed |
+| `Charge Sec.` | `1306` | `s` | observed while `Basic Status` is `Charge` |
+| `Discharge Sec.` | `3320` | `s` | observed while `Basic Status` is `Dischg` |
 | `Volt Status` | `Normal` | state string | observed |
 | `Current Status` | `Normal` | state string | observed |
 | `Tmpr. Status` | `Normal` | state string | observed |
@@ -108,7 +109,7 @@ The indexed form returns a separator-delimited key/value block for one module ra
 | `Heater Status` | `OFF` | state string | observed |
 | `Protect ENA` | list of protection identifiers | whitespace-separated identifiers | observed |
 | `Bat Events` | `0x0` | hexadecimal bit field | observed |
-| `Power Events` | `0x0` | hexadecimal bit field | observed |
+| `Power Events` | `0x2000 COULFULL` | hexadecimal bit field followed by optional symbolic event names | observed |
 | `System Fault` | `0x0` | hexadecimal bit field | observed |
 
 ### Indexed parsing constraints
@@ -117,7 +118,12 @@ The indexed form returns a separator-delimited key/value block for one module ra
 - Parse field names and values around the first colon.
 - Preserve the displayed unit separately from the numeric value.
 - `Protect ENA` is a variable-length list and must not be parsed as a single enum.
-- Event and fault fields are hexadecimal bit fields. Preserve both the raw text and parsed integer representation.
+- Event and fault fields start with a hexadecimal bit field and may be followed by
+  symbolic names such as `COULFULL`. Parse the first token as the integer bit
+  field and preserve the complete raw value, including any symbolic names.
+- `Charge Sec.` and `Discharge Sec.` are optional, state-dependent fields. Parse
+  either field when present, but do not require either one because other operating
+  states may omit both.
 - Unknown fields must be retained instead of discarded.
 - Do not assume that all firmware versions return the same field set or order.
 
@@ -139,7 +145,8 @@ captures/US2000C/B67.5.0/pwr-1.txt
 
 ## Open questions
 
-- Exact semantics of `Total Coulomb`, `Max Voltage`, `Charge Times`, and `Discharge Sec.`.
+- Exact semantics of `Total Coulomb`, `Max Voltage`, `Charge Times`,
+  `Charge Sec.`, and `Discharge Sec.`.
 - Complete enum sets for all status fields.
 - Meaning and bit allocation of `Bat Events`, `Power Events`, and `System Fault`.
 - Semantics of `B.V.St`, `B.T.St`, and `M.T.St` in the summary response.

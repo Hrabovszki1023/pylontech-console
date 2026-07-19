@@ -24,11 +24,15 @@ Only the commands in this section are allowed to be issued automatically by the 
 
 | Command | Purpose | Verification status |
 |---|---|---|
-| `info` | Read device model, hardware version, firmware versions, cell count and serial metadata | Verified |
 | `pwr` | Read summary data for all connected battery modules | Verified |
+| `pwrsys` | Read aggregate power-system information | Verified |
+| `info <position>` | Read device model, hardware version, firmware versions, cell count and serial metadata for one module | Verified |
+| `pwr <position>` | Read detailed process data for one module | Verified for modules 1 to 5 |
 | `bat <module>` | Read cell voltages, temperatures, current, state, SOC, coulomb value and balancing state for one module | Verified for modules 1 to 5 |
-| `stat` | Read statistical counters, SOH, cycle count and recorded protection events | Verified |
-| `time` | Read the internal RTC value | Verified |
+
+This production allowlist is intentionally identical to the initial production
+allowlist in `docs/contracts/version-0.1.md`. Commands may be documented and
+observed without being permitted for automatic production acquisition.
 
 ## Observability provided by the initial scope
 
@@ -56,12 +60,12 @@ The following commands appear to be passive, but have not yet been verified suff
 
 | Command | Expected purpose | Status |
 |---|---|---|
-| `pwr <index>` | Read one module summary | To be tested |
 | `soh <addr>` | Read SOH for an addressed module | To be tested |
-| `pwrsys` | Read power-system information | To be tested |
 | `getpwr` | Read additional power information | To be tested |
 | `ci` | Read current communication information | To be tested |
 | `log` | Display log information | To be tested |
+| `stat` | Read statistical counters, SOH, cycle count and recorded protection events | Verified, not in the version 0.1 production acquisition contract |
+| `time` | Read the internal RTC value | Verified, not in the version 0.1 production acquisition contract |
 | `data ...` | Read stored event or history data | Later |
 | `datalist ...` | Display recorded data | Later |
 | `adc` | Display ADC or address information | Later |
@@ -94,9 +98,7 @@ Unknown commands and unknown firmware versions must fail closed. They must not b
 The next passive commands to test are:
 
 ```text
-pwr 1
 soh 1
-pwrsys
 getpwr
 ci
 ```
