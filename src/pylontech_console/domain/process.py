@@ -49,7 +49,7 @@ class ModuleDetail:
     max_voltage_mv: int
     charge_times: int
     basic_status: str
-    discharge_seconds: int
+    discharge_seconds: int | None
     voltage_status: str
     current_status: str
     temperature_status: str
@@ -63,6 +63,7 @@ class ModuleDetail:
     power_events: int
     system_fault_raw: str
     system_fault: int
+    charge_seconds: int | None = None
     extra_fields: Mapping[str, str] = field(
         default_factory=lambda: MappingProxyType({}),
     )

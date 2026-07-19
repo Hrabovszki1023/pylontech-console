@@ -23,7 +23,6 @@ REQUIRED = (
     "Max Voltage",
     "Charge Times",
     "Basic Status",
-    "Discharge Sec.",
     "Volt Status",
     "Current Status",
     "Tmpr. Status",
@@ -36,6 +35,8 @@ REQUIRED = (
     "System Fault",
 )
 REQUIRED_SET = frozenset(REQUIRED)
+OPTIONAL_SET = frozenset(("Charge Sec.", "Discharge Sec."))
+KNOWN_SET = REQUIRED_SET | OPTIONAL_SET
 
 
 def _number(fields: dict[str, str], name: str) -> int:
@@ -101,7 +102,6 @@ def parse_pwr_detail(
         max_voltage_mv=_number(fields, "Max Voltage"),
         charge_times=_number(fields, "Charge Times"),
         basic_status=fields["Basic Status"],
-        discharge_seconds=_number(fields, "Discharge Sec."),
         voltage_status=fields["Volt Status"],
         current_status=fields["Current Status"],
         temperature_status=fields["Tmpr. Status"],
@@ -115,8 +115,16 @@ def parse_pwr_detail(
         power_events=power,
         system_fault_raw=fault_raw,
         system_fault=fault,
+        charge_seconds=(
+            _number(fields, "Charge Sec.") if "Charge Sec." in fields else None
+        ),
+        discharge_seconds=(
+            _number(fields, "Discharge Sec.")
+            if "Discharge Sec." in fields
+            else None
+        ),
         extra_fields=MappingProxyType(
-            {name: value for name, value in fields.items() if name not in REQUIRED_SET},
+            {name: value for name, value in fields.items() if name not in KNOWN_SET},
         ),
         raw_payload=payload,
     )

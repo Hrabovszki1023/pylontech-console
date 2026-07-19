@@ -44,6 +44,30 @@ def test_parses_every_indexed_pwr_capture(position: int) -> None:
     assert result.enabled_protections
     assert result.battery_events_raw == "0x0"
     assert result.battery_events == 0
+    assert result.charge_seconds is None
+    assert result.discharge_seconds is not None
+
+
+def test_parses_charging_indexed_pwr_capture() -> None:
+    result = parse_pwr_detail(payload("pwr-1-charge.txt"), NOW, 1)
+
+    assert result.basic_status == "Charge"
+    assert result.charge_seconds == 1306
+    assert result.discharge_seconds is None
+
+
+def test_indexed_pwr_allows_unknown_state_without_timer() -> None:
+    changed = (
+        payload("pwr-1-charge.txt")
+        .replace("Basic Status    : Charge", "Basic Status    : Future")
+        .replace(" Charge Sec.     : 1306    s\n", "")
+    )
+
+    result = parse_pwr_detail(changed, NOW, 1)
+
+    assert result.basic_status == "Future"
+    assert result.charge_seconds is None
+    assert result.discharge_seconds is None
 
 
 @pytest.mark.parametrize("position", range(1, 6))
