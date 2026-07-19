@@ -264,6 +264,7 @@ polling:
   rack_interval_seconds: 5
   module_interval_seconds: 60
   inventory_interval_seconds: 300
+  stale_after_multiplier: 2
 
 mqtt:
   enabled: true
@@ -273,6 +274,23 @@ mqtt:
 ```
 
 Configuration values shall be validated on startup.
+
+`stale_after_multiplier` shall be configurable, finite and greater than or
+equal to `1`. Its default value is `2`. Each data group becomes stale when:
+
+```text
+data age >= corresponding polling interval * stale_after_multiplier
+```
+
+The corresponding interval is the rack interval for rack and cell data, the
+module interval for indexed module data, and the inventory interval for
+topology data.
+
+Validity and staleness are separate properties. A failed acquisition marks the
+affected data group invalid immediately. Its last successfully received value
+and original receive timestamp may remain available for diagnostics. Staleness
+depends only on the age rule above, so invalid data may be not stale until its
+age reaches the configured threshold.
 
 Version 0.1 does not require editing configuration through the web interface.
 
