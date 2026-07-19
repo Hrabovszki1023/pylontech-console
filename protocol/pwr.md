@@ -109,7 +109,7 @@ The indexed form returns a separator-delimited key/value block for one module ra
 | `Heater Status` | `OFF` | state string | observed |
 | `Protect ENA` | list of protection identifiers | whitespace-separated identifiers | observed |
 | `Bat Events` | `0x0` | hexadecimal bit field | observed |
-| `Power Events` | `0x0` | hexadecimal bit field | observed |
+| `Power Events` | `0x2000 COULFULL` | hexadecimal bit field followed by optional symbolic event names | observed |
 | `System Fault` | `0x0` | hexadecimal bit field | observed |
 
 ### Indexed parsing constraints
@@ -118,7 +118,9 @@ The indexed form returns a separator-delimited key/value block for one module ra
 - Parse field names and values around the first colon.
 - Preserve the displayed unit separately from the numeric value.
 - `Protect ENA` is a variable-length list and must not be parsed as a single enum.
-- Event and fault fields are hexadecimal bit fields. Preserve both the raw text and parsed integer representation.
+- Event and fault fields start with a hexadecimal bit field and may be followed by
+  symbolic names such as `COULFULL`. Parse the first token as the integer bit
+  field and preserve the complete raw value, including any symbolic names.
 - `Charge Sec.` and `Discharge Sec.` are optional, state-dependent fields. Parse
   either field when present, but do not require either one because other operating
   states may omit both.

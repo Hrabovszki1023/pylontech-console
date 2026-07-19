@@ -56,6 +56,13 @@ def test_parses_charging_indexed_pwr_capture() -> None:
     assert result.discharge_seconds is None
 
 
+def test_parses_symbolic_power_event_capture() -> None:
+    result = parse_pwr_detail(payload("pwr-2-charge-event.txt"), NOW, 2)
+
+    assert result.power_events_raw == "0x2000     COULFULL"
+    assert result.power_events == 0x2000
+
+
 def test_indexed_pwr_allows_unknown_state_without_timer() -> None:
     changed = (
         payload("pwr-1-charge.txt")

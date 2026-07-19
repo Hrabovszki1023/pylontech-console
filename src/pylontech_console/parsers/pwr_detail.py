@@ -45,8 +45,11 @@ def _number(fields: dict[str, str], name: str) -> int:
 
 def _hex(fields: dict[str, str], name: str) -> tuple[str, int]:
     raw = fields[name]
+    tokens = raw.split()
+    if not tokens:
+        raise PwrDetailParserError(f"invalid {name}: {raw!r}")
     try:
-        return raw, int(raw, 16)
+        return raw, int(tokens[0], 16)
     except ValueError as error:
         raise PwrDetailParserError(f"invalid {name}: {raw!r}") from error
 
