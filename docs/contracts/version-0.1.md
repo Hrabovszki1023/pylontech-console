@@ -207,6 +207,18 @@ The transport shall connect to the Waveshare gateway through TCP using configura
 
 The Waveshare IP address and port shall not be hard-coded.
 
+The console transport uses these constants:
+
+| Constant | Value |
+|---|---:|
+| Text encoding | strict ASCII |
+| Command terminator | carriage return (`\r`, byte `0x0D`) |
+| Response start marker | `@` |
+| Response end marker | `$$` |
+| Maximum response size | 16 KiB (16,384 bytes) |
+| Default connection timeout | 5 seconds |
+| Default response timeout | 5 seconds |
+
 A successful response is framed by:
 
 ```text
@@ -219,9 +231,14 @@ $$
 Transport handling shall:
 
 - ignore command echo before `@`,
-- start payload collection at `@`,
-- stop payload collection at `$$`,
+- ignore prompt text such as `pylon_debug>` outside a framed response,
+- start payload collection after `@`,
+- stop payload collection before `$$`,
+- omit the markers and their adjacent line endings from the returned payload,
 - treat missing start or end markers as an incomplete response,
+- reject non-ASCII response bytes,
+- apply the response timeout to the complete command exchange,
+- reject an exchange that exceeds 16,384 bytes before a complete response is found,
 - retain raw responses for diagnostics,
 - preserve unknown fields where possible,
 - reject partial responses as valid current data,
@@ -241,7 +258,7 @@ waveshare:
   host: 192.168.20.211
   port: 4196
   connect_timeout_seconds: 5
-  response_timeout_seconds: 3
+  response_timeout_seconds: 5
 
 polling:
   rack_interval_seconds: 5
