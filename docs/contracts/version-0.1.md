@@ -353,6 +353,9 @@ Version 0.1 shall include a read-only web interface that uses the same internal 
 
 The web interface shall not directly query the battery independently.
 
+The concrete page, heatmap, color, accessibility, refresh, error and
+verification contract is defined in `web-ui-v0.1.md`.
+
 ### Rack view
 
 The rack view shall display at minimum:
