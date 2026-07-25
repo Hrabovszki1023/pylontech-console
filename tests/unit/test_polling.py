@@ -80,15 +80,16 @@ def detail(position: int) -> ModuleDetail:
     )
 
 
-def cells(position: int) -> ModuleCells:
+def cells(position: int, count: int = 15) -> ModuleCells:
     return ModuleCells(
         T1,
         position,
-        (
+        tuple(
             CellMeasurement(
-                0, 3300, -1000, 25000, "Dischg", "Normal", "Normal",
+                index, 3300 + index, -1000, 25000, "Dischg", "Normal", "Normal",
                 "Normal", 80, 40000, "N",
-            ),
+            )
+            for index in range(count)
         ),
     )
 
@@ -99,6 +100,7 @@ class FakeClient:
         self.active = 0
         self.maximum_active = 0
         self.fail_cells: set[int] = set()
+        self.cell_counts: dict[int, int] = {}
 
     async def _enter(self, call: str) -> None:
         self.calls.append(call)
@@ -127,7 +129,7 @@ class FakeClient:
         await self._enter(f"bat {position}")
         if position in self.fail_cells:
             raise RuntimeError("sensitive")
-        return cells(position)
+        return cells(position, self.cell_counts.get(position, 15))
 
 
 @pytest.mark.asyncio
@@ -203,6 +205,62 @@ async def test_failure_preserves_last_value_and_later_recovers() -> None:
 
     assert recovered.valid
     assert recovered.error is None
+
+
+@pytest.mark.asyncio
+async def test_cell_count_mismatch_preserves_last_complete_capture() -> None:
+    client = FakeClient()
+    service = PollingService(client, PollingSettings(), clock=lambda: T1)
+    await service.initialize()
+    await service.run_rack_and_cells_once()
+    successful = service.store.get().modules["B1"].cells
+
+    client.cell_counts[1] = 14
+    await service.run_rack_and_cells_once()
+    state = service.store.get()
+    failed = state.modules["B1"].cells
+
+    assert failed.value == successful.value
+    assert failed.received_at == successful.received_at
+    assert not failed.valid
+    assert failed.error is not None
+    assert failed.error.detail == "cells acquisition failed"
+    assert "cell capture count" not in failed.error.detail
+    assert state.modules["B2"].cells.valid
+
+
+@pytest.mark.asyncio
+async def test_cell_count_mismatch_without_previous_value_remains_null() -> None:
+    client = FakeClient()
+    client.cell_counts[1] = 16
+    service = PollingService(client, PollingSettings(), clock=lambda: T1)
+    await service.initialize()
+
+    await service.run_rack_and_cells_once()
+
+    failed = service.store.get().modules["B1"].cells
+    assert failed.value is None
+    assert failed.received_at is None
+    assert not failed.valid
+    assert service.store.get().modules["B2"].cells.valid
+
+
+@pytest.mark.asyncio
+async def test_cell_count_mismatch_recovers_with_next_complete_capture() -> None:
+    client = FakeClient()
+    client.cell_counts[1] = 14
+    service = PollingService(client, PollingSettings(), clock=lambda: T1)
+    await service.initialize()
+    await service.run_rack_and_cells_once()
+    assert not service.store.get().modules["B1"].cells.valid
+
+    client.cell_counts[1] = 15
+    await service.run_rack_and_cells_once()
+
+    recovered = service.store.get().modules["B1"].cells
+    assert recovered.valid
+    assert recovered.error is None
+    assert recovered.value == cells(1)
 
 
 def test_freshness_uses_configured_multiplier_and_boundary() -> None:
