@@ -18,6 +18,8 @@ class WebCell:
     voltage_mv: int | None
     deviation_mv: float | None
     status: str
+    absolute_state: str
+    absolute_label: str
     background_color: str
     foreground_color: str
     accessible_label: str
@@ -59,6 +61,11 @@ class RackPage:
     modules: tuple[WebModuleSummary, ...]
     heatmap_rows: tuple[HeatmapRow, ...]
     heatmap_scale_limit_mv: float
+    heatmap_deadband_mv: float
+    cell_low_warning_mv: int
+    cell_low_critical_mv: int
+    cell_high_balancing_mv: int
+    cell_high_warning_mv: int
     errors: tuple[ErrorModel, ...]
 
 

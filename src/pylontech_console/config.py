@@ -1,7 +1,12 @@
 import math
 from typing import Annotated
 
-from pydantic import Field, StringConstraints, field_validator
+from pydantic import (
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -73,3 +78,41 @@ class HttpSettings(BaseSettings):
 
 def load_http_settings() -> HttpSettings:
     return HttpSettings()
+
+
+class WebSettings(BaseSettings):
+    """Validated cell-voltage visualization settings."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="PYLONTECH_WEB_",
+        extra="ignore",
+    )
+
+    heatmap_deadband_mv: int = Field(default=2, ge=0)
+    heatmap_scale_mv: int = Field(default=50, gt=0)
+    cell_low_warning_mv: int = Field(default=3100, ge=0)
+    cell_low_critical_mv: int = Field(default=3000, ge=0)
+    cell_high_balancing_mv: int = Field(default=3547, ge=0)
+    cell_high_warning_mv: int = Field(default=3600, ge=0)
+
+    @model_validator(mode="after")
+    def validate_ordering(self) -> "WebSettings":
+        if self.heatmap_deadband_mv >= self.heatmap_scale_mv:
+            raise ValueError(
+                "heatmap deadband must be smaller than heatmap scale",
+            )
+        if not (
+            self.cell_low_critical_mv
+            < self.cell_low_warning_mv
+            < self.cell_high_balancing_mv
+            < self.cell_high_warning_mv
+        ):
+            raise ValueError(
+                "cell thresholds must be ordered low critical, low warning, "
+                "high balancing, high warning",
+            )
+        return self
+
+
+def load_web_settings() -> WebSettings:
+    return WebSettings()

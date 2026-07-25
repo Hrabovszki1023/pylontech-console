@@ -4,9 +4,11 @@ from pydantic import ValidationError
 from pylontech_console.config import (
     HttpSettings,
     PollingSettings,
+    WebSettings,
     WaveshareSettings,
     load_polling_settings,
     load_waveshare_settings,
+    load_web_settings,
 )
 
 ENVIRONMENT_VARIABLES = (
@@ -128,3 +130,64 @@ def test_http_rejects_empty_host(host: str) -> None:
 def test_http_rejects_invalid_port(port: int) -> None:
     with pytest.raises(ValidationError, match="port"):
         HttpSettings(port=port)
+
+
+def test_web_uses_documented_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in (
+        "PYLONTECH_WEB_HEATMAP_DEADBAND_MV",
+        "PYLONTECH_WEB_HEATMAP_SCALE_MV",
+        "PYLONTECH_WEB_CELL_LOW_WARNING_MV",
+        "PYLONTECH_WEB_CELL_LOW_CRITICAL_MV",
+        "PYLONTECH_WEB_CELL_HIGH_BALANCING_MV",
+        "PYLONTECH_WEB_CELL_HIGH_WARNING_MV",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = load_web_settings()
+
+    assert settings.heatmap_deadband_mv == 2
+    assert settings.heatmap_scale_mv == 50
+    assert settings.cell_low_warning_mv == 3100
+    assert settings.cell_low_critical_mv == 3000
+    assert settings.cell_high_balancing_mv == 3547
+    assert settings.cell_high_warning_mv == 3600
+
+
+def test_web_loads_environment_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PYLONTECH_WEB_HEATMAP_DEADBAND_MV", "3")
+    monkeypatch.setenv("PYLONTECH_WEB_HEATMAP_SCALE_MV", "60")
+    monkeypatch.setenv("PYLONTECH_WEB_CELL_LOW_WARNING_MV", "3110")
+    monkeypatch.setenv("PYLONTECH_WEB_CELL_LOW_CRITICAL_MV", "3010")
+    monkeypatch.setenv("PYLONTECH_WEB_CELL_HIGH_BALANCING_MV", "3550")
+    monkeypatch.setenv("PYLONTECH_WEB_CELL_HIGH_WARNING_MV", "3610")
+
+    settings = load_web_settings()
+
+    assert settings == WebSettings(
+        heatmap_deadband_mv=3,
+        heatmap_scale_mv=60,
+        cell_low_warning_mv=3110,
+        cell_low_critical_mv=3010,
+        cell_high_balancing_mv=3550,
+        cell_high_warning_mv=3610,
+    )
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"heatmap_deadband_mv": -1},
+        {"heatmap_scale_mv": 0},
+        {"heatmap_deadband_mv": 50},
+        {"cell_low_critical_mv": 3100},
+        {"cell_low_warning_mv": 3547},
+        {"cell_high_balancing_mv": 3600},
+    ],
+)
+def test_web_rejects_invalid_values(values: dict[str, int]) -> None:
+    with pytest.raises(ValidationError):
+        WebSettings(**values)

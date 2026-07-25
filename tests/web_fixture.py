@@ -4,6 +4,7 @@ from types import MappingProxyType
 
 from fastapi import FastAPI
 
+from pylontech_console.config import WebSettings
 from pylontech_console.domain.current_state import (
     ConnectionState,
     CurrentModule,
@@ -58,25 +59,37 @@ def _detail(position: int, voltage_mv: int) -> ModuleDetail:
     )
 
 
-def _cells(position: int, offset: int) -> ModuleCells:
+def _cells(
+    position: int,
+    offset: int,
+    voltages: tuple[int, ...] | None = None,
+    voltage_statuses: tuple[str, ...] | None = None,
+) -> ModuleCells:
+    cell_voltages = voltages or tuple(
+        3330 + ((index % 3) - 1) + offset
+        for index in range(15)
+    )
+    statuses = voltage_statuses or ("Normal",) * 15
     return ModuleCells(
         RECEIVED_TIME,
         position,
         tuple(
             CellMeasurement(
                 index=index,
-                voltage_mv=3330 + ((index % 3) - 1) + offset,
+                voltage_mv=voltage,
                 current_ma=6500,
                 temperature_mc=23500 + (index % 2) * 100,
                 base_status="Charge",
-                voltage_status="Normal",
+                voltage_status=status,
                 current_status="Normal",
                 temperature_status="Normal",
                 soc_percent=49,
                 coulomb_mah=24500,
                 balancing="Y" if index == 14 else "N",
             )
-            for index in range(15)
+            for index, (voltage, status) in enumerate(
+                zip(cell_voltages, statuses, strict=True),
+            )
         ),
     )
 
@@ -93,6 +106,9 @@ def create_web_test_app(
     *,
     stale_second_module: bool = False,
     unsafe_barcode: str | None = None,
+    first_module_voltages: tuple[int, ...] | None = None,
+    first_voltage_statuses: tuple[str, ...] | None = None,
+    web_settings: WebSettings | None = None,
 ) -> FastAPI:
     barcodes = (unsafe_barcode or "MODULE-A", "MODULE-B")
     records = {
@@ -122,7 +138,12 @@ def create_web_test_app(
                 2,
             ),
             cells=CurrentValue(
-                _cells(position, position - 1),
+                _cells(
+                    position,
+                    position - 1,
+                    first_module_voltages if position == 1 else None,
+                    first_voltage_statuses if position == 1 else None,
+                ),
                 RECEIVED_TIME,
                 True,
                 1 if stale_second_module and position == 2 else 5,
@@ -150,5 +171,5 @@ def create_web_test_app(
     store = CurrentStateStore(state)
     query = StateQuery(store, clock=lambda: SNAPSHOT_TIME)
     app = create_application(store, query=query)
-    mount_web(app, query)
+    mount_web(app, query, web_settings)
     return app

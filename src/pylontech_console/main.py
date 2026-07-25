@@ -9,6 +9,7 @@ from pylontech_console.config import (
     load_http_settings,
     load_polling_settings,
     load_waveshare_settings,
+    load_web_settings,
 )
 from pylontech_console.domain.current_state import ConnectionState
 from pylontech_console.framing.console import FramedConsoleClient
@@ -52,6 +53,7 @@ def build_production_application() -> tuple[FastAPI, str, int]:
     waveshare = load_waveshare_settings()
     polling_settings = load_polling_settings()
     http = load_http_settings()
+    web = load_web_settings()
     transport = AsyncTcpTransport(
         waveshare.host,
         waveshare.port,
@@ -72,7 +74,7 @@ def build_production_application() -> tuple[FastAPI, str, int]:
         query=query,
         runtime=runtime,
     )
-    mount_web(app, query)
+    mount_web(app, query, web)
     return app, http.host, http.port
 
 
