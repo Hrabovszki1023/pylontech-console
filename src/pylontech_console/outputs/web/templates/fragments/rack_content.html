@@ -134,7 +134,13 @@
                   data-deviation="{{ '%.4f'|format(cell.deviation_mv) if cell.deviation_mv is not none else '' }}"
                 >
                   {% if cell.voltage_mv is not none %}
-                    <strong>{{ cell.voltage_mv }}</strong>
+                    <strong
+                      class="cell-voltage-value"
+                      {% if cell.status == "current" %}
+                        data-cell-voltage-key="{{ row.barcode }}:{{ cell.index }}"
+                        data-cell-voltage-mv="{{ cell.voltage_mv }}"
+                      {% endif %}
+                    >{{ cell.voltage_mv }}</strong>
                     <small>
                       {{ "%+.2f"|format(cell.deviation_mv) if cell.deviation_mv is not none else cell.status }}
                     </small>
