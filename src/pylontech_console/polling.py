@@ -21,6 +21,19 @@ from pylontech_console.domain.pwr import PwrSummary
 ResultT = TypeVar("ResultT")
 
 
+class CellCountMismatchError(ValueError):
+    """Raised when a cell capture disagrees with discovered identity."""
+
+
+def validate_cell_count(cells: ModuleCells, expected_count: int) -> None:
+    actual_count = len(cells.cells)
+    if actual_count != expected_count:
+        raise CellCountMismatchError(
+            f"cell capture count {actual_count} does not match "
+            f"identity count {expected_count}",
+        )
+
+
 class PollingCommandClient(Protocol):
     async def read_topology(self) -> PwrSummary: ...
 
@@ -267,6 +280,10 @@ class PollingService:
                 cells = await self._command(
                     read_cells,
                 )
+                expected_count = (
+                    previous.inventory.modules[barcode].identity.cell_count
+                )
+                validate_cell_count(cells, expected_count)
                 cell_value = CurrentValue(
                     value=cells,
                     received_at=cells.received_at,
