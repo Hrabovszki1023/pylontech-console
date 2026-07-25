@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted for implementation by GitHub issue #21.
+Accepted for implementation by GitHub issue #21. The cell-voltage
+visualization requirements are refined by GitHub issue #27.
 
 This document refines the web-interface requirements in `version-0.1.md`. If
 the two documents conflict, implementation must stop until the conflict is
@@ -136,22 +137,84 @@ deviation_mv =
     cell.voltage_mv - module_average_cell_voltage_mv[m]
 ```
 
-The heatmap uses a symmetric diverging blue-white-red scale centered at zero:
+The heatmap uses a fixed symmetric diverging blue-white-red scale centered at
+zero:
 
-- a deviation of exactly `0 mV` is white;
-- a negative deviation is blue;
-- a positive deviation is red;
-- color intensity increases with the absolute deviation;
-- negative and positive colors use the same magnitude scale;
-- the scale limit for one rendered snapshot is the greatest absolute
-  row-relative deviation among all included cells, so color intensity remains
-  comparable across modules;
-- when every deviation is zero, all included cells use the neutral white
-  treatment and the scale remains mathematically safe;
-- a visible legend shows the current negative, zero and positive limits in mV.
+- deviations from `-2 mV` through `+2 mV`, inclusive, are white;
+- a deviation below `-2 mV` is increasingly blue;
+- a deviation above `+2 mV` is increasingly red;
+- negative and positive colors use the same fixed `50 mV` magnitude scale;
+- deviations at or beyond `-50 mV` and `+50 mV` use the respective full
+  endpoint color;
+- the scale and the meaning of a color do not change between refreshes;
+- when every deviation is in the neutral deadband, all included cells use the
+  neutral white treatment;
+- a visible legend shows the fixed negative endpoint, neutral deadband and
+  positive endpoint in mV.
 
 The concrete color interpolation may vary, but the sign, center, symmetry,
 ordering and status behavior are contractual.
+
+### Absolute cell-voltage state
+
+Relative deviation and absolute voltage answer different questions and use
+independent visual channels:
+
+- tile background communicates deviation from the module mean;
+- a visible border plus text or icon communicates absolute voltage state;
+- color alone is never the only absolute-state signal;
+- relative background remains visible when an absolute-state border is
+  present.
+
+The default absolute thresholds are:
+
+```text
+low warning                 voltage <= 3100 mV
+low critical                voltage <= 3000 mV
+upper charge/balancing zone voltage >= 3547 mV
+high warning                voltage >= 3600 mV
+```
+
+`3547 mV` is the integer-millivolt representation of the per-cell average at
+the configured `53.2 V` module charge target (`53.2 V / 15`). It is an
+informational upper charge/balancing state, not a claim that the cell has
+crossed an internal Pylontech protection threshold.
+
+Absolute-state precedence from highest to lowest is:
+
+1. a modeled BMS cell `voltage_status` other than `Normal` is critical;
+2. a voltage at or below the low-critical threshold is critical;
+3. a voltage at or above the high-warning threshold is warning/high;
+4. a voltage at or below the low-warning threshold is warning/low;
+5. a voltage at or above the upper charge/balancing threshold is
+   informational;
+6. otherwise the absolute state is normal.
+
+The BMS status always takes precedence over numeric UI thresholds. UI labels
+must not present configurable thresholds as authoritative or internal BMS
+protection limits.
+
+### Visualization configuration
+
+The following validated integer-millivolt environment settings are supported:
+
+```text
+PYLONTECH_WEB_HEATMAP_DEADBAND_MV=2
+PYLONTECH_WEB_HEATMAP_SCALE_MV=50
+PYLONTECH_WEB_CELL_LOW_WARNING_MV=3100
+PYLONTECH_WEB_CELL_LOW_CRITICAL_MV=3000
+PYLONTECH_WEB_CELL_HIGH_BALANCING_MV=3547
+PYLONTECH_WEB_CELL_HIGH_WARNING_MV=3600
+```
+
+Docker Compose passes all six settings through to the application. Defaults
+apply when the settings are omitted. Configuration is rejected at startup
+unless:
+
+```text
+low critical < low warning < high balancing < high warning
+0 <= deadband < scale
+```
 
 ### Status and accessibility
 
@@ -202,8 +265,8 @@ Color must never be the only carrier of value or status.
 
 - Present modules are ordered by current position.
 - Stable barcodes are used for module links and identity.
-- Cell measurements retain their parser-provided zero-based order internally.
-- Human-facing cell numbers are one-based labels only.
+- Cell measurements and human-facing heatmap/detail labels retain their
+  parser-provided zero-based indices `0..14`.
 - Units remain explicit.
 - Unavailable values are not converted to zero.
 - Device states and unknown enum values remain visible strings.
@@ -226,7 +289,17 @@ must verify:
 - module-terminal voltage and derived module cell average columns;
 - exact-zero deviation uses the neutral class;
 - positive deviation uses the red side and negative deviation the blue side;
-- symmetric scaling and the all-equal safe case;
+- the inclusive neutral deadband, fixed symmetric scale, endpoint saturation
+  and all-neutral safe case;
+- the relative scale remains unchanged for snapshots with different current
+  maximum deviations;
+- default visualization settings and environment overrides;
+- invalid threshold ordering, negative deadband and non-positive scale fail
+  configuration;
+- every exact absolute threshold boundary;
+- non-normal BMS voltage status takes precedence over numeric thresholds;
+- absolute voltage state remains understandable without color and does not
+  obscure the relative-deviation background;
 - exactly 15 ordered cell columns labeled `Cell 0` through `Cell 14`;
 - incomplete captures invalidate the entire module row;
 - invalid and stale groups are excluded from the reference mean;
@@ -273,6 +346,7 @@ and narrow viewport sizes.
 - MQTT publication;
 - SQLite persistence;
 - historical measurements, charts or trends;
+- Grafana dashboards and alert rules;
 - a temperature heatmap as a required deliverable;
 - authentication and authorization;
 - configuration editing;
