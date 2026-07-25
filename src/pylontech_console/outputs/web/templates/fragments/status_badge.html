@@ -1,0 +1,4 @@
+{% set current = metadata.valid and not metadata.stale %}
+<span class="status-badge status-{{ 'current' if current else ('invalid' if not metadata.valid else 'stale') }}">
+  {{ 'Current' if current else ('Invalid' if not metadata.valid else 'Stale') }}
+</span>

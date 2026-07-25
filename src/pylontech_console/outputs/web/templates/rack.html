@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Rack overview · Pylontech Console{% endblock %}
+{% block content %}
+  <div
+    id="rack-content"
+    hx-get="/web/fragments/overview"
+    hx-trigger="every 5s"
+    hx-swap="innerHTML"
+  >
+    {% include "fragments/rack_content.html" %}
+  </div>
+{% endblock %}

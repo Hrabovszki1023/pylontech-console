@@ -1,0 +1,144 @@
+<section class="page-heading">
+  <div>
+    <a class="back-link" href="/">← Rack overview</a>
+    <p class="eyebrow">Module detail</p>
+    <h1>{{ page.barcode }}</h1>
+    <p>
+      Position {{ page.position if page.position is not none else "not installed" }}
+      · {{ page.identity.device_name }}
+      · {{ "Present" if page.present else "Not present" }}
+    </p>
+  </div>
+  <div class="hero-status">
+    {% with metadata=page.detail_metadata %}
+      {% include "fragments/status_badge.html" %}
+    {% endwith %}
+    <small>Snapshot {{ page.generated_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}</small>
+  </div>
+</section>
+
+<section class="metrics" aria-label="Module measurements">
+  <article class="metric metric-primary">
+    <span>Module SOC</span>
+    <strong>{{ page.detail.soc_percent if page.detail else "N/A" }}{% if page.detail %}%{% endif %}</strong>
+    <small>{{ page.detail.basic_status if page.detail else "Unavailable" }}</small>
+  </article>
+  <article class="metric">
+    <span>Voltage</span>
+    <strong>{{ "%.3f"|format(page.detail.voltage_mv / 1000) if page.detail else "N/A" }}</strong>
+    <small>{% if page.detail %}V{% else %}Unavailable{% endif %}</small>
+  </article>
+  <article class="metric">
+    <span>Current</span>
+    <strong>{{ "%+.3f"|format(page.detail.current_ma / 1000) if page.detail else "N/A" }}</strong>
+    <small>{% if page.detail %}A{% else %}Unavailable{% endif %}</small>
+  </article>
+  <article class="metric">
+    <span>Temperature</span>
+    <strong>{{ "%.1f"|format(page.detail.temperature_mc / 1000) if page.detail else "N/A" }}</strong>
+    <small>{% if page.detail %}°C{% else %}Unavailable{% endif %}</small>
+  </article>
+  <article class="metric">
+    <span>Cell spread</span>
+    <strong>{{ page.cell_voltage_delta_mv if page.cell_voltage_delta_mv is not none else "N/A" }}</strong>
+    <small>{% if page.cell_voltage_delta_mv is not none %}mV{% else %}Unavailable{% endif %}</small>
+  </article>
+  <article class="metric">
+    <span>Cell capture</span>
+    <strong>{{ page.cells|length if page.cells is not none else 0 }}/{{ page.identity.cell_count }}</strong>
+    <small>
+      {% with metadata=page.cell_metadata %}
+        {% include "fragments/status_badge.html" %}
+      {% endwith %}
+    </small>
+  </article>
+</section>
+
+{% if page.detail_metadata.error or page.cell_metadata.error %}
+  <section class="alerts" aria-label="Module acquisition errors">
+    {% for error in [page.detail_metadata.error, page.cell_metadata.error] if error %}
+      <p><strong>{{ error.group }}</strong> · {{ error.detail }}</p>
+    {% endfor %}
+  </section>
+{% endif %}
+
+<section class="two-column">
+  <article class="panel">
+    <p class="eyebrow">Identity</p>
+    <h2>Module information</h2>
+    <dl class="detail-grid">
+      <div><dt>Manufacturer</dt><dd>{{ page.identity.manufacturer }}</dd></div>
+      <div><dt>Model</dt><dd>{{ page.identity.device_name }}</dd></div>
+      <div><dt>Board</dt><dd>{{ page.identity.board_version }}</dd></div>
+      <div><dt>Main firmware</dt><dd>{{ page.identity.main_software_version }}</dd></div>
+      <div><dt>Software</dt><dd>{{ page.identity.software_version }}</dd></div>
+      <div><dt>Boot</dt><dd>{{ page.identity.boot_version }}</dd></div>
+      <div><dt>Release date</dt><dd>{{ page.identity.release_date }}</dd></div>
+      <div><dt>Specification</dt><dd>{{ page.identity.specification }}</dd></div>
+    </dl>
+  </article>
+  <article class="panel">
+    <p class="eyebrow">Freshness</p>
+    <h2>Acquisition status</h2>
+    <dl class="detail-grid">
+      <div><dt>Detail age</dt><dd>{{ "%.1f s"|format(page.detail_metadata.age_seconds) if page.detail_metadata.age_seconds is not none else "N/A" }}</dd></div>
+      <div><dt>Detail received</dt><dd>{{ page.detail_metadata.received_at.strftime("%H:%M:%S UTC") if page.detail_metadata.received_at else "Never" }}</dd></div>
+      <div><dt>Cell age</dt><dd>{{ "%.1f s"|format(page.cell_metadata.age_seconds) if page.cell_metadata.age_seconds is not none else "N/A" }}</dd></div>
+      <div><dt>Cells received</dt><dd>{{ page.cell_metadata.received_at.strftime("%H:%M:%S UTC") if page.cell_metadata.received_at else "Never" }}</dd></div>
+      <div><dt>Cell minimum</dt><dd>{{ page.minimum_cell_voltage_mv ~ " mV" if page.minimum_cell_voltage_mv is not none else "N/A" }}</dd></div>
+      <div><dt>Cell maximum</dt><dd>{{ page.maximum_cell_voltage_mv ~ " mV" if page.maximum_cell_voltage_mv is not none else "N/A" }}</dd></div>
+    </dl>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">Cell capture</p>
+      <h2>All cell measurements</h2>
+    </div>
+    {% with metadata=page.cell_metadata %}
+      {% include "fragments/status_badge.html" %}
+    {% endwith %}
+  </div>
+  {% if page.cells %}
+    <div class="table-scroll" tabindex="0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Cell</th>
+            <th>Voltage</th>
+            <th>Current</th>
+            <th>Temperature</th>
+            <th>SOC</th>
+            <th>Coulomb</th>
+            <th>Balance</th>
+            <th>Base</th>
+            <th>Voltage</th>
+            <th>Current</th>
+            <th>Temperature</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cell in page.cells %}
+            <tr>
+              <th scope="row">Cell {{ cell.index }}</th>
+              <td>{{ cell.voltage_mv }} mV</td>
+              <td>{{ cell.current_ma }} mA</td>
+              <td>{{ "%.1f"|format(cell.temperature_mc / 1000) }} °C</td>
+              <td>{{ cell.soc_percent }}%</td>
+              <td>{{ cell.coulomb_mah }} mAh</td>
+              <td>{{ cell.balancing }}</td>
+              <td>{{ cell.base_status }}</td>
+              <td>{{ cell.voltage_status }}</td>
+              <td>{{ cell.current_status }}</td>
+              <td>{{ cell.temperature_status }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty-state">No complete cell capture is available.</p>
+  {% endif %}
+</section>

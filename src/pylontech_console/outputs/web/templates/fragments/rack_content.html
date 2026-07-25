@@ -1,0 +1,211 @@
+<section class="hero">
+  <div>
+    <p class="eyebrow">Live rack</p>
+    <h1>Energy at cell level</h1>
+    <p class="hero-copy">
+      Five-module topology, current acquisition health and cell-voltage
+      deviation in one read-only view.
+    </p>
+  </div>
+  <div class="hero-status">
+    <span class="connection connection-{{ page.health.status }}">
+      <span class="pulse" aria-hidden="true"></span>
+      {{ page.health.status | upper }}
+    </span>
+    <small>
+      Rack data
+      {{ "%.1f s old"|format(page.rack_metadata.age_seconds) if page.rack_metadata.age_seconds is not none else "not received" }}
+    </small>
+    <small>Snapshot {{ page.generated_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}</small>
+  </div>
+</section>
+
+{% if page.errors %}
+  <section class="alerts" aria-label="Current acquisition errors">
+    {% for error in page.errors %}
+      <p><strong>{{ error.group }}</strong> · {{ error.detail }}</p>
+    {% endfor %}
+  </section>
+{% endif %}
+
+<section class="metrics" aria-label="Rack measurements">
+  <article class="metric metric-primary">
+    <span>Rack SOC</span>
+    <strong>{{ page.rack.soc_percent if page.rack else "N/A" }}{% if page.rack %}%{% endif %}</strong>
+    <small>State of charge</small>
+  </article>
+  <article class="metric">
+    <span>Rack voltage</span>
+    <strong>{{ "%.2f"|format(page.rack.voltage_mv / 1000) if page.rack else "N/A" }}</strong>
+    <small>{% if page.rack %}V{% else %}Unavailable{% endif %}</small>
+  </article>
+  <article class="metric">
+    <span>Rack current</span>
+    <strong>{{ "%+.2f"|format(page.rack.current_ma / 1000) if page.rack else "N/A" }}</strong>
+    <small>{% if page.rack %}A{% else %}Unavailable{% endif %}</small>
+  </article>
+  <article class="metric">
+    <span>Rack power</span>
+    <strong>{{ "%+.0f"|format(page.rack.derived.power_w) if page.rack else "N/A" }}</strong>
+    <small>{% if page.rack %}W derived{% else %}Unavailable{% endif %}</small>
+  </article>
+  <article class="metric">
+    <span>Cell spread</span>
+    <strong>{{ page.rack.derived.cell_voltage_delta_mv if page.rack else "N/A" }}</strong>
+    <small>{% if page.rack %}mV rack-wide{% else %}Unavailable{% endif %}</small>
+  </article>
+  <article class="metric">
+    <span>Modules</span>
+    <strong>{{ page.rack.present_modules if page.rack else page.modules|selectattr("present", "equalto", true)|list|length }}</strong>
+    <small>{{ page.health.cell_groups.total_cells }} cells captured</small>
+  </article>
+</section>
+
+<section class="panel heatmap-panel">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">Voltage safety view</p>
+      <h2>Cell-voltage heatmap</h2>
+      <p>
+        Each cell is compared with the average of its own module.
+        Blue is below, red is above, white is equal.
+      </p>
+    </div>
+    <div class="legend" aria-label="Heatmap legend">
+      <span>−{{ "%.2f"|format(page.heatmap_scale_limit_mv) }} mV</span>
+      <div class="legend-scale" aria-hidden="true"></div>
+      <span>0</span>
+      <div class="legend-scale legend-scale-positive" aria-hidden="true"></div>
+      <span>+{{ "%.2f"|format(page.heatmap_scale_limit_mv) }} mV</span>
+    </div>
+  </div>
+
+  {% if page.heatmap_rows %}
+    <div class="heatmap-scroll" tabindex="0" aria-label="Scrollable cell-voltage heatmap">
+      <table class="heatmap">
+        <thead>
+          <tr>
+            <th scope="col" class="module-heading">Module</th>
+            <th scope="col">Module voltage</th>
+            <th scope="col">Module cell average</th>
+            {% for index in range(15) %}
+              <th scope="col">Cell {{ index }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in page.heatmap_rows %}
+            <tr>
+              <th scope="row" class="module-label">
+                <span>Position {{ row.position }}</span>
+                <a href="/modules/{{ row.barcode | urlencode }}">{{ row.barcode }}</a>
+                <small class="row-status row-status-{{ row.status }}">{{ row.status }}</small>
+              </th>
+              <td class="summary-cell">
+                {% if row.module_voltage_mv is not none %}
+                  <strong>{{ "%.3f"|format(row.module_voltage_mv / 1000) }}</strong>
+                  <small>V</small>
+                {% else %}N/A{% endif %}
+              </td>
+              <td class="summary-cell">
+                {% if row.module_average_cell_voltage_mv is not none %}
+                  <strong>{{ "%.2f"|format(row.module_average_cell_voltage_mv) }}</strong>
+                  <small>mV</small>
+                {% else %}N/A{% endif %}
+              </td>
+              {% for cell in row.cells %}
+                <td
+                  class="heat-cell heat-cell-{{ cell.status }}"
+                  style="background-color: {{ cell.background_color }}; color: {{ cell.foreground_color }}"
+                  aria-label="{{ cell.accessible_label }}"
+                  data-cell-index="{{ cell.index }}"
+                  data-status="{{ cell.status }}"
+                  data-deviation="{{ '%.4f'|format(cell.deviation_mv) if cell.deviation_mv is not none else '' }}"
+                >
+                  {% if cell.voltage_mv is not none %}
+                    <strong>{{ cell.voltage_mv }}</strong>
+                    <small>
+                      {{ "%+.2f"|format(cell.deviation_mv) if cell.deviation_mv is not none else cell.status }}
+                    </small>
+                  {% else %}
+                    <strong>N/A</strong>
+                    <small>unavailable</small>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">No present modules are available for the heatmap.</div>
+  {% endif %}
+</section>
+
+<section class="two-column">
+  <article class="panel">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Inventory</p>
+        <h2>Module overview</h2>
+      </div>
+      {% with metadata=page.health.inventory %}
+        {% include "fragments/status_badge.html" %}
+      {% endwith %}
+    </div>
+    <div class="module-list">
+      {% for module in page.modules %}
+        <a class="module-card" href="/modules/{{ module.barcode | urlencode }}">
+          <div>
+            <span>Position {{ module.position if module.position is not none else "—" }}</span>
+            <strong>{{ module.barcode }}</strong>
+            <small>{{ module.model }} · {{ module.basic_status or "No state" }}</small>
+          </div>
+          <dl>
+            <div><dt>Voltage</dt><dd>{{ "%.3f V"|format(module.voltage_mv / 1000) if module.voltage_mv is not none else "N/A" }}</dd></div>
+            <div><dt>SOC</dt><dd>{{ module.soc_percent ~ "%" if module.soc_percent is not none else "N/A" }}</dd></div>
+            <div><dt>Spread</dt><dd>{{ module.cell_voltage_delta_mv ~ " mV" if module.cell_voltage_delta_mv is not none else "N/A" }}</dd></div>
+            <div>
+              <dt>Detail</dt>
+              <dd>
+                {{ "invalid" if not module.detail_metadata.valid else ("stale" if module.detail_metadata.stale else "current") }}
+                · {{ "%.1f s"|format(module.detail_metadata.age_seconds) if module.detail_metadata.age_seconds is not none else "never" }}
+              </dd>
+            </div>
+            <div>
+              <dt>Cells</dt>
+              <dd>
+                {{ "invalid" if not module.cell_metadata.valid else ("stale" if module.cell_metadata.stale else "current") }}
+                · {{ "%.1f s"|format(module.cell_metadata.age_seconds) if module.cell_metadata.age_seconds is not none else "never" }}
+              </dd>
+            </div>
+          </dl>
+          <span class="chevron" aria-hidden="true">→</span>
+        </a>
+      {% else %}
+        <p class="empty-state">Inventory has not been discovered yet.</p>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel">
+    <p class="eyebrow">Rack detail</p>
+    <h2>Limits &amp; temperature</h2>
+    {% if page.rack %}
+      <dl class="detail-grid">
+        <div><dt>BMS cell average</dt><dd>{{ page.rack.average_cell_voltage_mv }} mV</dd></div>
+        <div><dt>Cell range</dt><dd>{{ page.rack.lowest_cell_voltage_mv }}–{{ page.rack.highest_cell_voltage_mv }} mV</dd></div>
+        <div><dt>Temperature range</dt><dd>{{ "%.1f"|format(page.rack.lowest_temperature_mc / 1000) }}–{{ "%.1f"|format(page.rack.highest_temperature_mc / 1000) }} °C</dd></div>
+        <div><dt>Average temperature</dt><dd>{{ "%.1f"|format(page.rack.average_temperature_mc / 1000) }} °C</dd></div>
+        <div><dt>Charge voltage</dt><dd>{{ "%.2f"|format(page.rack.recommended_charge_voltage_mv / 1000) }} V</dd></div>
+        <div><dt>Discharge voltage</dt><dd>{{ "%.2f"|format(page.rack.recommended_discharge_voltage_mv / 1000) }} V</dd></div>
+        <div><dt>Charge current</dt><dd>{{ "%.1f"|format(page.rack.recommended_charge_current_ma / 1000) }} A</dd></div>
+        <div><dt>Discharge current</dt><dd>{{ "%.1f"|format(page.rack.recommended_discharge_current_ma / 1000) }} A</dd></div>
+        <div><dt>SOH</dt><dd>{{ page.rack.soh_percent }}%</dd></div>
+      </dl>
+    {% else %}
+      <p class="empty-state">Rack measurements are not available.</p>
+    {% endif %}
+  </article>
+</section>

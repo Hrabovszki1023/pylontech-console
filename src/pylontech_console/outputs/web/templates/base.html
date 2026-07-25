@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>{% block title %}Pylontech Console{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('web-assets', path='/app.css') }}">
+    <script src="{{ url_for('web-assets', path='/htmx.min.js') }}" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span>
+          <strong>Pylontech Console</strong>
+          <small>Battery rack monitor</small>
+        </span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="/">Rack overview</a>
+        <a href="/docs">REST API</a>
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer>
+      Read-only monitoring · Values refresh every 5 seconds
+    </footer>
+  </body>
+</html>

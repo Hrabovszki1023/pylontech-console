@@ -13,6 +13,8 @@ from pylontech_console.config import (
 from pylontech_console.domain.current_state import ConnectionState
 from pylontech_console.framing.console import FramedConsoleClient
 from pylontech_console.outputs.api import create_application
+from pylontech_console.outputs.api.query import StateQuery
+from pylontech_console.outputs.web import mount_web
 from pylontech_console.polling import PollingService, utc_now
 from pylontech_console.transport.tcp import AsyncTcpTransport
 
@@ -64,7 +66,13 @@ def build_production_application() -> tuple[FastAPI, str, int]:
         polling_settings,
     )
     runtime = ServiceRuntime(transport, polling)
-    app = create_application(polling.store, runtime=runtime)
+    query = StateQuery(polling.store)
+    app = create_application(
+        polling.store,
+        query=query,
+        runtime=runtime,
+    )
+    mount_web(app, query)
     return app, http.host, http.port
 
 
