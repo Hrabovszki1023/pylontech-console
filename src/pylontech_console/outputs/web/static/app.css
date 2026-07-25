@@ -305,6 +305,15 @@ table { border-collapse: separate; border-spacing: 0; width: 100%; }
 }
 .heat-cell strong, .heat-cell small { display: block; }
 .heat-cell strong { font-size: .76rem; }
+.cell-voltage-value.cell-voltage-changed {
+  color: #008a3b;
+  font-weight: 900;
+  text-shadow:
+    -1px -1px 0 #fff,
+    1px -1px 0 #fff,
+    -1px 1px 0 #fff,
+    1px 1px 0 #fff;
+}
 .heat-cell small { margin-top: 4px; font-size: .57rem; opacity: .82; }
 .heat-cell.absolute-balancing {
   box-shadow: inset 0 0 0 2px #7c3aed;

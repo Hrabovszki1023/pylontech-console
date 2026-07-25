@@ -23,8 +23,12 @@ def test_rack_overview_renders_module_heatmap_and_local_htmx() -> None:
     ) == 30
     assert "3330" in response.text
     assert 'src="http://testserver/assets/htmx.min.js"' in response.text
+    assert 'src="http://testserver/assets/app.js"' in response.text
     assert 'hx-trigger="every 5s"' in response.text
+    assert response.text.count("data-cell-voltage-key=") == 30
+    assert "cell-voltage-changed" not in response.text
     assert "https://unpkg.com" not in response.text
+    assert client.get("/assets/app.js").status_code == 200
 
 
 def test_heatmap_uses_independent_module_averages_and_fixed_deadband() -> None:
@@ -177,6 +181,7 @@ def test_stale_capture_is_neutral_and_excluded_from_module_average() -> None:
     assert response.text.count(
         'class="heat-cell heat-cell-stale absolute-stale"',
     ) == 15
+    assert response.text.count("data-cell-voltage-key=") == 15
     assert response.text.count("<strong>3330.00</strong>") == 1
     assert "<strong>3331.00</strong>" not in response.text
 

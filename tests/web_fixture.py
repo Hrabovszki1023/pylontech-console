@@ -171,5 +171,6 @@ def create_web_test_app(
     store = CurrentStateStore(state)
     query = StateQuery(store, clock=lambda: SNAPSHOT_TIME)
     app = create_application(store, query=query)
+    app.state.current_state_store = store
     mount_web(app, query, web_settings)
     return app
