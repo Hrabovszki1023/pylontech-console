@@ -133,6 +133,10 @@ Expose the current internal state:
 - current cell values,
 - recent topology events.
 
+The implementation shall follow `docs/contracts/rest-api-v0.1.md`, including
+the shared query/view-model boundary that will also serve the later
+server-rendered web UI.
+
 Result: the service can be inspected and tested without the web UI or MQTT.
 
 ## Step 8: Read-only web UI and heat maps
