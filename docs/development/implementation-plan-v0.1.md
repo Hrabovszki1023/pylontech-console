@@ -153,6 +153,10 @@ Implement server-rendered pages using Jinja2 and HTMX:
 - module and rack voltage spread,
 - clear indication of stale or invalid data.
 
+The implementation shall follow `docs/contracts/web-ui-v0.1.md`, including
+the rack overview as the module overview, barcode-based module details and the
+per-module cell-voltage heatmap reference.
+
 Heat-map colors shall show relative deviation while keeping the numeric values visible. Color alone shall not convey status.
 
 Result: outliers are directly visible without requiring ioBroker or Grafana.
