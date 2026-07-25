@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Module {{ page.barcode }} · Pylontech Console{% endblock %}
+{% block content %}
+  <div
+    id="module-content"
+    hx-get="/web/fragments/modules/{{ page.barcode | urlencode }}"
+    hx-trigger="every 5s"
+    hx-swap="innerHTML"
+  >
+    {% include "fragments/module_content.html" %}
+  </div>
+{% endblock %}
