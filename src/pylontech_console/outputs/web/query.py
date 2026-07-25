@@ -1,6 +1,7 @@
 from dataclasses import asdict, fields
 from datetime import datetime
 
+from pylontech_console.config import WebSettings
 from pylontech_console.domain.current_state import (
     CurrentModule,
     CurrentState,
@@ -33,10 +34,18 @@ def _interpolate_channel(start: int, end: int, intensity: float) -> int:
     return round(start + ((end - start) * intensity))
 
 
-def _cell_color(deviation: float, scale_limit: float) -> tuple[str, str]:
-    if deviation == 0 or scale_limit == 0:
+def _cell_color(
+    deviation: float,
+    deadband: float,
+    scale_limit: float,
+) -> tuple[str, str]:
+    magnitude = abs(deviation)
+    if magnitude <= deadband:
         return "#ffffff", "#172033"
-    intensity = min(1.0, abs(deviation) / scale_limit)
+    intensity = min(
+        1.0,
+        (magnitude - deadband) / (scale_limit - deadband),
+    )
     endpoint = (220, 58, 58) if deviation > 0 else (37, 99, 235)
     channels = tuple(
         _interpolate_channel(255, channel, intensity)
@@ -49,8 +58,22 @@ def _cell_color(deviation: float, scale_limit: float) -> tuple[str, str]:
 class WebQuery:
     """Create server-rendered view models from one shared state snapshot."""
 
-    def __init__(self, query: StateQuery) -> None:
+    def __init__(self, query: StateQuery, settings: WebSettings) -> None:
         self._query = query
+        self._settings = settings
+
+    def _absolute_state(self, cell: CellMeasurement) -> tuple[str, str]:
+        if cell.voltage_status != "Normal":
+            return "critical", f"BMS critical: {cell.voltage_status}"
+        if cell.voltage_mv <= self._settings.cell_low_critical_mv:
+            return "critical", "Low critical"
+        if cell.voltage_mv >= self._settings.cell_high_warning_mv:
+            return "high-warning", "High warning"
+        if cell.voltage_mv <= self._settings.cell_low_warning_mv:
+            return "low-warning", "Low warning"
+        if cell.voltage_mv >= self._settings.cell_high_balancing_mv:
+            return "balancing", "Charge/balancing"
+        return "normal", "Absolute voltage normal"
 
     def _health(
         self,
@@ -180,12 +203,11 @@ class WebQuery:
             and len(current.cells.value.cells) == expected_count
         )
 
-    @staticmethod
     def _row_cells(
+        self,
         values: tuple[CellMeasurement, ...] | None,
         average: float | None,
         status: str,
-        scale_limit: float,
     ) -> tuple[WebCell, ...]:
         by_index = {} if values is None else {
             cell.index: cell for cell in values
@@ -200,6 +222,8 @@ class WebQuery:
                         voltage_mv=None,
                         deviation_mv=None,
                         status="unavailable",
+                        absolute_state="unavailable",
+                        absolute_label="Absolute voltage unavailable",
                         background_color="#e5e7eb",
                         foreground_color="#4b5563",
                         accessible_label=f"Cell {index}: unavailable",
@@ -212,16 +236,22 @@ class WebQuery:
             if status == "current" and deviation is not None:
                 background, foreground = _cell_color(
                     deviation,
-                    scale_limit,
+                    self._settings.heatmap_deadband_mv,
+                    self._settings.heatmap_scale_mv,
                 )
+                absolute_state, absolute_label = self._absolute_state(cell)
             else:
                 background, foreground = "#e5e7eb", "#374151"
+                absolute_state = status
+                absolute_label = f"Absolute voltage {status}"
             result.append(
                 WebCell(
                     index=index,
                     voltage_mv=cell.voltage_mv,
                     deviation_mv=deviation,
                     status=status,
+                    absolute_state=absolute_state,
+                    absolute_label=absolute_label,
                     background_color=background,
                     foreground_color=foreground,
                     accessible_label=(
@@ -231,7 +261,7 @@ class WebQuery:
                         else (
                             f"Cell {index}: {cell.voltage_mv} millivolts, "
                             f"deviation {deviation:+.2f} millivolts, "
-                            f"{status}"
+                            f"{status}, {absolute_label}"
                         )
                     ),
                 ),
@@ -266,7 +296,6 @@ class WebQuery:
                 str,
             ]
         ] = []
-        all_deviations: list[float] = []
         for record in records:
             if record.present is not True or record.current_position is None:
                 continue
@@ -287,10 +316,6 @@ class WebQuery:
                 if is_current and values is not None
                 else None
             )
-            if average is not None and values is not None:
-                all_deviations.extend(
-                    cell.voltage_mv - average for cell in values
-                )
             if current is None or current.cells.value is None:
                 status = "unavailable"
             elif not current.cells.valid:
@@ -301,10 +326,6 @@ class WebQuery:
                 status = "current"
             row_data.append((record, current, values, average, status))
 
-        scale_limit = max(
-            (abs(value) for value in all_deviations),
-            default=0.0,
-        )
         rows = tuple(
             HeatmapRow(
                 barcode=record.barcode,
@@ -320,7 +341,6 @@ class WebQuery:
                     values,
                     average,
                     status,
-                    scale_limit,
                 ),
             )
             for record, current, values, average, status in row_data
@@ -333,7 +353,14 @@ class WebQuery:
             rack_metadata=self._query.metadata(state.rack, generated_at),
             modules=modules,
             heatmap_rows=rows,
-            heatmap_scale_limit_mv=scale_limit,
+            heatmap_scale_limit_mv=self._settings.heatmap_scale_mv,
+            heatmap_deadband_mv=self._settings.heatmap_deadband_mv,
+            cell_low_warning_mv=self._settings.cell_low_warning_mv,
+            cell_low_critical_mv=self._settings.cell_low_critical_mv,
+            cell_high_balancing_mv=(
+                self._settings.cell_high_balancing_mv
+            ),
+            cell_high_warning_mv=self._settings.cell_high_warning_mv,
             errors=tuple(health.errors),
         )
 

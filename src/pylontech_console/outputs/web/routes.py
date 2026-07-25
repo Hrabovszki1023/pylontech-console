@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from pylontech_console.config import WebSettings
 from pylontech_console.outputs.api.query import StateQuery
 from pylontech_console.outputs.web.query import WebQuery
 
@@ -12,8 +13,11 @@ WEB_ROOT = Path(__file__).parent
 templates = Jinja2Templates(directory=WEB_ROOT / "templates")
 
 
-def create_web_router(query: StateQuery) -> APIRouter:
-    web_query = WebQuery(query)
+def create_web_router(
+    query: StateQuery,
+    settings: WebSettings,
+) -> APIRouter:
+    web_query = WebQuery(query, settings)
     router = APIRouter(include_in_schema=False)
 
     @router.get("/", response_class=HTMLResponse)
@@ -69,11 +73,15 @@ def create_web_router(query: StateQuery) -> APIRouter:
     return router
 
 
-def mount_web(app: FastAPI, query: StateQuery) -> None:
+def mount_web(
+    app: FastAPI,
+    query: StateQuery,
+    settings: WebSettings | None = None,
+) -> None:
     """Mount the read-only web adapter and its local assets."""
     app.mount(
         "/assets",
         StaticFiles(directory=WEB_ROOT / "static"),
         name="web-assets",
     )
-    app.include_router(create_web_router(query))
+    app.include_router(create_web_router(query, settings or WebSettings()))

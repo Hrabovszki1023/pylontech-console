@@ -68,15 +68,25 @@
       <h2>Cell-voltage heatmap</h2>
       <p>
         Each cell is compared with the average of its own module.
-        Blue is below, red is above, white is equal.
+        Blue is below, red is above, and the ±{{ page.heatmap_deadband_mv }} mV
+        neutral zone is white. Borders show absolute voltage state.
       </p>
     </div>
     <div class="legend" aria-label="Heatmap legend">
-      <span>−{{ "%.2f"|format(page.heatmap_scale_limit_mv) }} mV</span>
+      <span>−{{ "%.0f"|format(page.heatmap_scale_limit_mv) }} mV</span>
       <div class="legend-scale" aria-hidden="true"></div>
-      <span>0</span>
+      <span>±{{ "%.0f"|format(page.heatmap_deadband_mv) }} mV neutral</span>
       <div class="legend-scale legend-scale-positive" aria-hidden="true"></div>
-      <span>+{{ "%.2f"|format(page.heatmap_scale_limit_mv) }} mV</span>
+      <span>+{{ "%.0f"|format(page.heatmap_scale_limit_mv) }} mV</span>
+    </div>
+    <div class="absolute-legend" aria-label="Absolute cell-voltage states">
+      <span class="absolute-key absolute-key-balancing">Charge/balancing ≥{{ page.cell_high_balancing_mv }} mV</span>
+      <span class="absolute-key absolute-key-warning">
+        Low ≤{{ page.cell_low_warning_mv }} · high ≥{{ page.cell_high_warning_mv }} mV
+      </span>
+      <span class="absolute-key absolute-key-critical">
+        Critical ≤{{ page.cell_low_critical_mv }} mV or BMS status
+      </span>
     </div>
   </div>
 
@@ -115,11 +125,12 @@
               </td>
               {% for cell in row.cells %}
                 <td
-                  class="heat-cell heat-cell-{{ cell.status }}"
+                  class="heat-cell heat-cell-{{ cell.status }} absolute-{{ cell.absolute_state }}"
                   style="background-color: {{ cell.background_color }}; color: {{ cell.foreground_color }}"
                   aria-label="{{ cell.accessible_label }}"
                   data-cell-index="{{ cell.index }}"
                   data-status="{{ cell.status }}"
+                  data-absolute-state="{{ cell.absolute_state }}"
                   data-deviation="{{ '%.4f'|format(cell.deviation_mv) if cell.deviation_mv is not none else '' }}"
                 >
                   {% if cell.voltage_mv is not none %}
@@ -127,6 +138,9 @@
                     <small>
                       {{ "%+.2f"|format(cell.deviation_mv) if cell.deviation_mv is not none else cell.status }}
                     </small>
+                    {% if cell.absolute_state not in ["normal", "current"] %}
+                      <span class="cell-absolute-label">{{ cell.absolute_label }}</span>
+                    {% endif %}
                   {% else %}
                     <strong>N/A</strong>
                     <small>unavailable</small>
