@@ -58,6 +58,12 @@ console commands.
 - current position-to-barcode topology;
 - the cell-voltage heatmap defined below.
 
+The rack overview is also the module overview. It lists every currently known
+module with its stable barcode, current position, presence, model, voltage,
+current, SOC, basic state, cell-voltage minimum/maximum/delta, age, validity
+and staleness. Each module links to its barcode-based detail page. Version 0.1
+does not require a separate `GET /modules` overview page.
+
 ### Module detail
 
 `GET /modules/{barcode}` uses the stable barcode in navigation and URLs.
@@ -85,8 +91,12 @@ heatmap.
 
 - Rows represent currently present modules in ascending rack-position order.
 - Row labels show the current position and stable barcode.
-- Columns represent cells in ascending zero-based data order.
-- Human-facing headings use `Cell 1` through `Cell N`.
+- The first data column is `Module voltage` and shows the module-terminal
+  `voltage_mv` measurement, approximately 48 V, with an explicit unit.
+- The second data column is `Module cell average` and shows the derived
+  arithmetic mean of that module's 15 valid current cell voltages in mV.
+- The remaining 15 columns represent parser cell indices `0` through `14` in
+  ascending order and are labeled `Cell 0` through `Cell 14`.
 - Every available cell tile displays its measured voltage numerically in mV.
 - Signed deviation may be shown as secondary visible text or accessible text.
 - No value may be available only through a tooltip.
@@ -97,29 +107,33 @@ heatmap.
 
 The UI displays these values separately above the heatmap:
 
-- `Rack SOC`: the authoritative rack `soc_percent` measurement;
-- `Average cell voltage`: the arithmetic mean in mV of all valid, non-stale
-  cell measurements included in the heatmap.
+- `Rack SOC`: the authoritative rack `soc_percent` measurement.
 
-Average cell voltage is a derived voltage reference. It must not be presented
-as the SOC measurement.
+Each module row displays its own `Module cell average`. The console does not
+provide a per-module `average_cell_voltage_mv`; this value is derived from the
+15 cell voltages returned by `bat <position>`. The `average_cell_voltage_mv`
+returned by `pwrsys` is a rack-level BMS value and remains a separate rack
+overview measurement.
 
-For `n` included cells:
+For module `m` with its 15 valid, non-stale cells:
 
 ```text
-average_cell_voltage_mv =
-    sum(cell.voltage_mv for included cells) / n
+module_average_cell_voltage_mv[m] =
+    sum(cell.voltage_mv for cell in module[m].cells) / 15
 ```
 
-The displayed average may be rounded for presentation, but deviation and
-color calculations use the unrounded response-snapshot value.
+The module average is the zero reference for that module row. It must not be
+presented as the rack SOC or as the rack-level BMS average. The displayed
+average may be rounded for presentation, but deviation and color calculations
+use the unrounded response-snapshot value.
 
 ### Deviation
 
-For every included cell:
+For every valid current cell in module `m`:
 
 ```text
-deviation_mv = cell.voltage_mv - average_cell_voltage_mv
+deviation_mv =
+    cell.voltage_mv - module_average_cell_voltage_mv[m]
 ```
 
 The heatmap uses a symmetric diverging blue-white-red scale centered at zero:
@@ -130,7 +144,8 @@ The heatmap uses a symmetric diverging blue-white-red scale centered at zero:
 - color intensity increases with the absolute deviation;
 - negative and positive colors use the same magnitude scale;
 - the scale limit for one rendered snapshot is the greatest absolute
-  deviation among included cells;
+  row-relative deviation among all included cells, so color intensity remains
+  comparable across modules;
 - when every deviation is zero, all included cells use the neutral white
   treatment and the scale remains mathematically safe;
 - a visible legend shows the current negative, zero and positive limits in mV.
@@ -152,14 +167,25 @@ Color must never be the only carrier of value or status.
 
 ### Invalid, unavailable and stale values
 
-- Only valid, non-stale cell groups contribute to the average and color scale.
+- Every supported version 0.1 module has an identity `cell_count` of 15. A
+  complete current capture therefore contains exactly the contiguous parser
+  indices `0..14`.
+- A capture with fewer or more than 15 cells, a missing index or a duplicate
+  index is invalid as a whole. It is never presented as a partially current
+  module row.
+- Only a complete, valid and non-stale 15-cell capture contributes to its
+  module average and the shared color scale.
 - Retained stale or invalid values may be displayed only for diagnostics and
   must be explicitly marked as stale or invalid.
-- Stale and invalid values do not contribute to the average or color scale.
+- A last complete retained capture may fill all 15 tiles when the row is
+  explicitly marked stale or invalid, but it does not contribute to the
+  average or color scale.
+- If a module has never produced a complete valid capture, its row contains
+  15 `N/A` cell tiles and no module cell average.
 - Invalid, stale and unavailable tiles use a neutral treatment outside the
   blue-white-red measurement scale.
-- If no valid current cells exist, the UI shows no calculated average, uses
-  neutral tiles and displays a clear unavailable-state message.
+- If no module has a valid current capture, the UI uses neutral tiles and
+  displays a clear unavailable-state message.
 
 ## Refresh behavior
 
@@ -196,9 +222,13 @@ must verify:
 - every modeled cell appears and every available heatmap tile contains its
   numeric voltage;
 - average cell-voltage calculation;
+- independent per-module reference means;
+- module-terminal voltage and derived module cell average columns;
 - exact-zero deviation uses the neutral class;
 - positive deviation uses the red side and negative deviation the blue side;
 - symmetric scaling and the all-equal safe case;
+- exactly 15 ordered cell columns labeled `Cell 0` through `Cell 14`;
+- incomplete captures invalidate the entire module row;
 - invalid and stale groups are excluded from the reference mean;
 - invalid, stale and unavailable values are visibly marked;
 - unavailable values render as `N/A`, never zero;
@@ -209,7 +239,8 @@ must verify:
 - web requests execute no console commands and start no polling;
 - no write or arbitrary-command routes are introduced;
 - existing REST behavior and tests remain unchanged;
-- desktop and narrow-viewport browser rendering.
+- Playwright browser rendering at desktop `1440x900` and narrow `390x844`
+  viewports.
 
 ## Verification
 
@@ -218,6 +249,7 @@ python -m pip install -e ".[dev]"
 python -m pytest
 python -m ruff check .
 python -m mypy src tests
+python -m pytest tests/browser
 python -m pylontech_console.main
 docker build -t pylontech-console .
 docker compose config
