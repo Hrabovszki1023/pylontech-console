@@ -3,7 +3,7 @@
 ## Status
 
 Accepted for implementation by GitHub issue #21. The cell-voltage
-visualization requirements are refined by GitHub issue #27.
+visualization requirements are refined by GitHub issues #27 and #30.
 
 This document refines the web-interface requirements in `version-0.1.md`. If
 the two documents conflict, implementation must stop until the conflict is
@@ -261,6 +261,39 @@ Color must never be the only carrier of value or status.
   acquisition and freshness state.
 - Full-page navigation and refresh remain functional without HTMX.
 
+### Transient cell-voltage change indication
+
+The rack heatmap provides a transient browser-local indication when a primary
+cell-voltage measurement changes between successful HTMX refreshes:
+
+- only the primary integer-mV cell-voltage text inside a heatmap tile
+  participates;
+- comparison identity is the stable module barcode plus zero-based parser cell
+  index `0..14`; current rack position alone is not an identity;
+- when both the previous and new values are numeric and unequal, the new
+  primary voltage text uses a readable green foreground for exactly 3 seconds;
+- after 3 seconds the text returns to its normal inherited foreground color;
+- another numeric change during the indication restarts the 3-second interval
+  from the latest change;
+- initial page load, full-page reload and the first appearance of a module or
+  cell do not trigger the indication;
+- equal values and transitions to or from `N/A`, invalid, stale or unavailable
+  data do not trigger the indication.
+
+The signed deviation, module average, module voltage, rack measurements,
+timestamps, ages, status labels, backgrounds and absolute-state borders do not
+participate. The effect does not change the fixed relative scale, deadband,
+absolute voltage thresholds or BMS-status precedence.
+
+Comparison state and timers exist only in the current browser page. The
+feature introduces no backend history, persistence, REST field or acquisition
+change. Without JavaScript, current voltage values remain visible and the
+read-only UI remains fully functional.
+
+The green foreground and a transient CSS class identify the changed value.
+This effect is informational only and must not represent safety, validity,
+freshness or alarm state.
+
 ## Ordering and formatting
 
 - Present modules are ordered by current position.
@@ -312,6 +345,16 @@ must verify:
 - web requests execute no console commands and start no polling;
 - no write or arbitrary-command routes are introduced;
 - existing REST behavior and tests remain unchanged;
+- initial load, unchanged values and first appearances do not trigger the
+  transient cell-voltage change indication;
+- changed numeric cell voltage triggers only its primary text for 3 seconds,
+  another change restarts the timer, and the class is then removed;
+- cell change comparison uses stable barcode plus zero-based cell index across
+  rack-position changes;
+- `N/A`, invalid, stale and unavailable transitions do not trigger the change
+  indication;
+- deviation text, backgrounds, absolute-state borders and unrelated values
+  remain unaffected by the change indication;
 - Playwright browser rendering at desktop `1440x900` and narrow `390x844`
   viewports.
 
