@@ -147,6 +147,13 @@ class PollingService:
         )
 
     async def initialize(self) -> None:
+        self._store.publish(
+            replace(
+                self._store.get(),
+                connection=ConnectionState.DISCOVERING,
+                updated_at=self._clock().astimezone(timezone.utc),
+            ),
+        )
         await self.run_inventory_once()
 
     async def run_inventory_once(self) -> None:

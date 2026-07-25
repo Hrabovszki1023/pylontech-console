@@ -57,3 +57,19 @@ def load_polling_settings() -> PollingSettings:
     """Load polling settings from the process environment."""
 
     return PollingSettings()
+
+
+class HttpSettings(BaseSettings):
+    """Validated HTTP bind settings."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="PYLONTECH_HTTP_",
+        extra="ignore",
+    )
+
+    host: NonEmptyString = "0.0.0.0"
+    port: int = Field(default=8000, ge=1, le=65535)
+
+
+def load_http_settings() -> HttpSettings:
+    return HttpSettings()

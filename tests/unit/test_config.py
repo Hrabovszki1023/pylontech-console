@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from pylontech_console.config import (
+    HttpSettings,
     PollingSettings,
     WaveshareSettings,
     load_polling_settings,
@@ -108,3 +109,22 @@ def test_polling_uses_documented_defaults(
 def test_polling_rejects_invalid_values(field: str, value: float) -> None:
     with pytest.raises(ValidationError, match=field):
         PollingSettings(**{field: value})
+
+
+def test_http_uses_documented_defaults() -> None:
+    settings = HttpSettings()
+
+    assert settings.host == "0.0.0.0"
+    assert settings.port == 8000
+
+
+@pytest.mark.parametrize("host", ["", "   "])
+def test_http_rejects_empty_host(host: str) -> None:
+    with pytest.raises(ValidationError, match="host"):
+        HttpSettings(host=host)
+
+
+@pytest.mark.parametrize("port", [0, 65536])
+def test_http_rejects_invalid_port(port: int) -> None:
+    with pytest.raises(ValidationError, match="port"):
+        HttpSettings(port=port)

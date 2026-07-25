@@ -15,6 +15,7 @@ ValueT = TypeVar("ValueT")
 
 class ConnectionState(str, Enum):
     STARTING = "starting"
+    DISCOVERING = "discovering"
     ONLINE = "online"
     DEGRADED = "degraded"
     OFFLINE = "offline"
