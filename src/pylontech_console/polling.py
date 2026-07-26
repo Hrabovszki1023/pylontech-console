@@ -59,12 +59,27 @@ class CurrentStateStore:
 
     def __init__(self, initial: CurrentState) -> None:
         self._state = initial
+        self._listeners: list[Callable[[CurrentState], None]] = []
 
     def get(self) -> CurrentState:
         return self._state
 
     def publish(self, state: CurrentState) -> None:
         self._state = state
+        for listener in tuple(self._listeners):
+            listener(state)
+
+    def subscribe(
+        self,
+        listener: Callable[[CurrentState], None],
+    ) -> Callable[[], None]:
+        self._listeners.append(listener)
+
+        def unsubscribe() -> None:
+            if listener in self._listeners:
+                self._listeners.remove(listener)
+
+        return unsubscribe
 
 
 def utc_now() -> datetime:

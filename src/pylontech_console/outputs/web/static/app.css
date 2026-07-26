@@ -117,7 +117,7 @@ main {
   white-space: nowrap;
 }
 
-.connection, .status-badge {
+.connection, .status-badge, .mqtt-status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -314,6 +314,23 @@ table { border-collapse: separate; border-spacing: 0; width: 100%; }
     -1px 1px 0 #fff,
     1px 1px 0 #fff;
 }
+.mqtt-status-disabled {
+  color: var(--muted);
+  background: #e9edf2;
+}
+.mqtt-status-connecting {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+.mqtt-status-connected {
+  color: var(--green);
+  background: var(--green-soft);
+}
+.mqtt-status-disconnected {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.mqtt-error { color: var(--red); }
 .heat-cell small { margin-top: 4px; font-size: .57rem; opacity: .82; }
 .heat-cell.absolute-balancing {
   box-shadow: inset 0 0 0 2px #7c3aed;

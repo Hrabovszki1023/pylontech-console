@@ -10,6 +10,7 @@ from pylontech_console.domain.current_state import (
 )
 from pylontech_console.domain.discovery import ModuleRecord
 from pylontech_console.domain.info import ModuleIdentity
+from pylontech_console.mqtt_health import MqttHealth, MqttHealthStore
 from pylontech_console.outputs.api.models import (
     CellCountModel,
     CellModel,
@@ -23,6 +24,7 @@ from pylontech_console.outputs.api.models import (
     HealthModel,
     IdentityModel,
     MetadataModel,
+    MqttHealthModel,
     ModuleModel,
     ModulesModel,
     ModuleSummaryModel,
@@ -53,9 +55,11 @@ class StateQuery:
         self,
         store: CurrentStateStore,
         clock: Clock = utc_now,
+        mqtt_health: MqttHealthStore | None = None,
     ) -> None:
         self._store = store
         self._clock = clock
+        self._mqtt_health = mqtt_health or MqttHealthStore()
 
     def snapshot(self) -> tuple[CurrentState, datetime]:
         return self._store.get(), self._clock().astimezone(UTC)
@@ -174,13 +178,24 @@ class StateQuery:
             ),
         )
 
-    def health(self) -> HealthModel:
-        state, now = self.snapshot()
+    def health_for(
+        self,
+        state: CurrentState,
+        now: datetime,
+    ) -> HealthModel:
         details = [module.detail for module in state.modules.values()]
         cells = [module.cells for module in state.modules.values()]
+        mqtt = self._mqtt_health.get()
+        status = state.connection.value
+        if (
+            state.connection.value == "online"
+            and mqtt.enabled
+            and not mqtt.connected
+        ):
+            status = "degraded"
         return HealthModel(
             generated_at=now,
-            status=state.connection.value,
+            status=status,
             updated_at=state.updated_at,
             last_success_at=state.last_success_at,
             consecutive_failures=state.consecutive_failures,
@@ -202,8 +217,25 @@ class StateQuery:
                 invalid_groups=sum(not value.valid for value in cells),
                 stale_groups=sum(value.is_stale(now) for value in cells),
             ),
+            mqtt=self.mqtt_model(mqtt),
             errors=[self.error(error) for error in state.errors],  # type: ignore[misc]
         )
+
+    @staticmethod
+    def mqtt_model(value: MqttHealth) -> MqttHealthModel:
+        return MqttHealthModel(
+            enabled=value.enabled,
+            state=value.state.value,
+            connected=value.connected,
+            last_connected_at=value.last_connected_at,
+            last_disconnected_at=value.last_disconnected_at,
+            consecutive_failures=value.consecutive_failures,
+            error=value.error,
+        )
+
+    def health(self) -> HealthModel:
+        state, now = self.snapshot()
+        return self.health_for(state, now)
 
     def rack(self) -> CurrentValueModel[RackValueModel]:
         state, now = self.snapshot()

@@ -9,11 +9,8 @@ from pylontech_console.domain.current_state import (
 from pylontech_console.domain.discovery import ModuleRecord
 from pylontech_console.domain.process import CellMeasurement
 from pylontech_console.outputs.api.models import (
-    CellCountModel,
     CellModel,
-    CountModel,
     DetailValueModel,
-    HealthModel,
     MetadataModel,
     RackDerivedModel,
     RackValueModel,
@@ -74,49 +71,6 @@ class WebQuery:
         if cell.voltage_mv >= self._settings.cell_high_balancing_mv:
             return "balancing", "Charge/balancing"
         return "normal", "Absolute voltage normal"
-
-    def _health(
-        self,
-        state: CurrentState,
-        generated_at: datetime,
-    ) -> HealthModel:
-        details = [module.detail for module in state.modules.values()]
-        cells = [module.cells for module in state.modules.values()]
-        return HealthModel(
-            generated_at=generated_at,
-            status=state.connection.value,
-            updated_at=state.updated_at,
-            last_success_at=state.last_success_at,
-            consecutive_failures=state.consecutive_failures,
-            inventory=self._query.metadata(
-                state.inventory_freshness,
-                generated_at,
-            ),
-            rack=self._query.metadata(state.rack, generated_at),
-            module_details=CountModel(
-                total=len(details),
-                valid=sum(value.valid for value in details),
-                invalid=sum(not value.valid for value in details),
-                stale=sum(value.is_stale(generated_at) for value in details),
-            ),
-            cell_groups=CellCountModel(
-                module_groups=len(cells),
-                total_cells=sum(
-                    len(value.value.cells) if value.value is not None else 0
-                    for value in cells
-                ),
-                valid_groups=sum(value.valid for value in cells),
-                invalid_groups=sum(not value.valid for value in cells),
-                stale_groups=sum(
-                    value.is_stale(generated_at) for value in cells
-                ),
-            ),
-            errors=[
-                error
-                for value in state.errors
-                if (error := self._query.error(value)) is not None
-            ],
-        )
 
     @staticmethod
     def _rack_value(state: CurrentState) -> RackValueModel | None:
@@ -345,7 +299,7 @@ class WebQuery:
             )
             for record, current, values, average, status in row_data
         )
-        health = self._health(state, generated_at)
+        health = self._query.health_for(state, generated_at)
         return RackPage(
             generated_at=generated_at,
             health=health,

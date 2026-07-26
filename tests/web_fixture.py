@@ -23,6 +23,7 @@ from pylontech_console.domain.process import (
 from pylontech_console.outputs.api import create_application
 from pylontech_console.outputs.api.query import StateQuery
 from pylontech_console.outputs.web import mount_web
+from pylontech_console.mqtt_health import MqttHealth, MqttHealthStore
 from pylontech_console.polling import CurrentStateStore
 
 SNAPSHOT_TIME = datetime(2026, 7, 25, 12, 0, 5, tzinfo=timezone.utc)
@@ -109,6 +110,7 @@ def create_web_test_app(
     first_module_voltages: tuple[int, ...] | None = None,
     first_voltage_statuses: tuple[str, ...] | None = None,
     web_settings: WebSettings | None = None,
+    mqtt_health: MqttHealth | None = None,
 ) -> FastAPI:
     barcodes = (unsafe_barcode or "MODULE-A", "MODULE-B")
     records = {
@@ -169,7 +171,11 @@ def create_web_test_app(
         modules=readonly_modules(modules),
     )
     store = CurrentStateStore(state)
-    query = StateQuery(store, clock=lambda: SNAPSHOT_TIME)
+    query = StateQuery(
+        store,
+        clock=lambda: SNAPSHOT_TIME,
+        mqtt_health=MqttHealthStore(mqtt_health),
+    )
     app = create_application(store, query=query)
     app.state.current_state_store = store
     mount_web(app, query, web_settings)
