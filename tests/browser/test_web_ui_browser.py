@@ -73,8 +73,12 @@ def live_web() -> Iterator[LiveWeb]:
 def _assert_page(page: Page, url: str, viewport: ViewportSize) -> None:
     page.set_viewport_size(viewport)
     page.goto(url, wait_until="networkidle")
-    assert page.get_by_text("MQTT DISABLED", exact=True).is_visible()
-    assert page.get_by_role("heading", name="Cell-voltage heatmap").is_visible()
+    assert page.get_by_test_id("mqtt-status").is_visible()
+    assert page.get_by_test_id("cell-voltage-heatmap").is_visible()
+    assert page.get_by_test_id("module-MODULE-A-card").is_visible()
+    assert page.get_by_test_id(
+        "module-MODULE-A-cell-0-heatmap-voltage",
+    ).is_visible()
     assert page.locator(".heat-cell").count() == 30
     assert page.locator(".absolute-critical").count() == 1
     assert page.locator(".absolute-low-warning").count() == 2
@@ -84,8 +88,8 @@ def _assert_page(page: Page, url: str, viewport: ViewportSize) -> None:
     assert page.locator("body").evaluate(
         "(body) => body.scrollWidth <= window.innerWidth",
     )
-    page.get_by_role("link", name="MODULE-A").first.click()
-    assert page.get_by_role("heading", name="MODULE-A").is_visible()
+    page.get_by_test_id("module-MODULE-A-heatmap-link").click()
+    assert page.get_by_test_id("module-MODULE-A-page").is_visible()
     assert page.locator(".data-table tbody tr").count() == 15
 
 

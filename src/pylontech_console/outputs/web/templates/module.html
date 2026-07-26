@@ -3,6 +3,7 @@
 {% block content %}
   <div
     id="module-content"
+    data-testid="module-{{ page.barcode | testid }}-page"
     hx-get="/web/fragments/modules/{{ page.barcode | urlencode }}"
     hx-trigger="every 5s"
     hx-swap="innerHTML"

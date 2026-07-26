@@ -326,6 +326,160 @@ freshness or alarm state.
 - `raw_payload` is never rendered.
 - Device-provided values and error details are HTML-escaped.
 
+## GUI automation test-ID contract
+
+`data-testid` is the stable machine-facing interface for external black-box
+GUI tests. Tests use it instead of CSS classes, DOM position, visible wording,
+color, language or responsive layout. It does not replace semantic HTML,
+accessible names or other accessibility attributes.
+
+### Syntax, identity and uniqueness
+
+Every test ID consists only of ASCII letters, digits, `.`, `_`, `%` and `-`.
+Static registry segments are lowercase kebab case. A dynamic barcode component
+preserves the original barcode bytes: every UTF-8 byte outside ASCII letters,
+digits, `-`, `_` and `.` is encoded as uppercase `%HH`; literal `%` is `%25`.
+This encoding is reversible and collision-free. Device text is never inserted
+unencoded into a test ID.
+
+Module IDs use encoded barcode, never position. Cell IDs use encoded barcode
+and canonical zero-based parser index `0..14`. Position IDs use canonical
+unsigned decimal only for topology entries. Every `data-testid` is unique
+within a full rendered document and within a standalone HTMX fragment.
+
+The same semantic element has the same ID in full-page and fragment responses,
+after HTMX replacement, across responsive layouts, and after a module move.
+Current, stale, invalid and unavailable values retain their selector. A value
+is rendered as `N/A` or accompanied by its status; its test ID is not removed
+merely because the measurement is unavailable. Conditional error and MQTT
+detail IDs exist exactly when the corresponding sanitized value exists.
+
+### Required rack registry
+
+Static rack IDs are:
+
+```text
+rack-page
+rack-current-state
+rack-health
+service-status
+service-errors
+service-error-<zero-based-error-index>
+mqtt-status
+mqtt-last-connected-at
+mqtt-last-disconnected-at
+mqtt-consecutive-failures
+mqtt-error
+rack-age
+rack-snapshot-at
+rack-soc
+rack-voltage
+rack-current
+rack-power
+rack-cell-voltage-delta
+rack-present-modules
+rack-limits
+rack-average-cell-voltage
+rack-cell-voltage-range
+rack-temperature-range
+rack-average-temperature
+rack-charge-voltage-limit
+rack-discharge-voltage-limit
+rack-charge-current-limit
+rack-discharge-current-limit
+rack-soh
+inventory-status
+module-overview
+topology
+topology-position-<position>
+cell-voltage-heatmap
+cell-voltage-heatmap-unavailable
+cell-voltage-heatmap-legend
+cell-voltage-absolute-legend
+```
+
+Per-module rack IDs, where `<module>` is the encoded barcode, are:
+
+```text
+module-<module>-card
+module-<module>-barcode
+module-<module>-position
+module-<module>-soc
+module-<module>-state
+module-<module>-voltage-summary
+module-<module>-cell-voltage-delta
+module-<module>-detail-status
+module-<module>-cells-status
+module-<module>-heatmap-row
+module-<module>-heatmap-link
+module-<module>-heatmap-status
+module-<module>-voltage
+module-<module>-cell-average
+module-<module>-cell-<index>-heatmap
+module-<module>-cell-<index>-heatmap-voltage
+module-<module>-cell-<index>-heatmap-deviation
+```
+
+The heatmap tile itself exposes absolute-voltage state through its contractual
+`data-absolute-state` attribute in every state, including normal, stale,
+invalid and unavailable.
+
+### Required module-detail registry
+
+For encoded `<module>`:
+
+```text
+module-<module>-page
+module-<module>-current-state
+module-<module>-header
+module-<module>-barcode
+module-<module>-position
+module-<module>-present
+module-<module>-snapshot-at
+module-<module>-soc
+module-<module>-state
+module-<module>-voltage
+module-<module>-current
+module-<module>-temperature
+module-<module>-cell-voltage-delta
+module-<module>-cell-capture
+module-<module>-detail-status
+module-<module>-cells-status
+module-<module>-errors
+module-<module>-error-<zero-based-error-index>
+module-<module>-identity
+module-<module>-identity-<modeled-field>
+module-<module>-freshness
+module-<module>-freshness-<field>
+module-<module>-cells
+module-<module>-cell-table-status
+module-<module>-cells-unavailable
+module-<module>-cell-<index>-row
+module-<module>-cell-<index>-voltage
+module-<module>-cell-<index>-current
+module-<module>-cell-<index>-temperature
+module-<module>-cell-<index>-soc
+module-<module>-cell-<index>-coulomb
+module-<module>-cell-<index>-balancing
+module-<module>-cell-<index>-base-status
+module-<module>-cell-<index>-voltage-status
+module-<module>-cell-<index>-current-status
+module-<module>-cell-<index>-temperature-status
+```
+
+Modeled identity fields are `manufacturer`, `model`, `board`,
+`main-firmware`, `software`, `boot`, `release-date` and `specification`.
+Freshness fields are `detail-age`, `detail-received-at`, `cell-age`,
+`cells-received-at`, `cell-minimum-voltage` and `cell-maximum-voltage`.
+
+### Compatibility and change management
+
+Adding a new test ID is backward compatible. Renaming, repurposing or removing
+a required ID is a contract change: update this registry, the external
+acceptance tests and the documented interface version in the same coordinated
+release. An existing ID must never silently acquire a different semantic
+meaning. Product templates contain no OKW, Selenium or test-runner dependency.
+
 ## Testing
 
 Tests use controlled `CurrentStateStore` snapshots and a fixed clock. They
