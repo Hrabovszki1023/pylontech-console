@@ -519,6 +519,7 @@ The internal health/query model and `GET /api/v1/health` expose:
 {
   "mqtt": {
     "enabled": true,
+    "state": "disconnected",
     "connected": false,
     "last_connected_at": null,
     "last_disconnected_at": "2026-07-26T10:00:00Z",
@@ -530,11 +531,20 @@ The internal health/query model and `GET /api/v1/health` expose:
 
 Rules:
 
-- disabled MQTT has `enabled=false`, `connected=false`, null timestamps, zero
-  failures and null error; it does not affect service status;
+- `state` is exactly one of `disabled`, `connecting`, `connected` or
+  `disconnected`;
+- disabled MQTT has `enabled=false`, `state=disabled`, `connected=false`,
+  null timestamps, zero failures and null error; it does not affect service
+  status;
+- enabled MQTT uses `connecting` while an active broker connection attempt is
+  in progress, including the initial attempt;
+- enabled MQTT uses `connected` and `connected=true` only while the MQTT
+  client has an established broker connection;
+- enabled MQTT uses `disconnected` after a failed attempt or lost connection
+  while it waits for the next retry;
 - enabled and connected MQTT does not lower service status;
-- enabled but disconnected MQTT makes a battery-otherwise-online service
-  `degraded`;
+- enabled MQTT with `connected=false`, whether `connecting` or
+  `disconnected`, makes a battery-otherwise-online service `degraded`;
 - `offline` remains reserved for unavailable battery communication;
 - a battery `starting` or `discovering` state retains that state while MQTT
   independently reports its connection;
@@ -543,6 +553,37 @@ Rules:
 
 MQTT health is runtime state, not battery state. Its addition to the shared
 health query is the only REST response change authorized by this contract.
+
+## Web status
+
+The read-only rack overview displays MQTT runtime state independently from
+battery/service state. It does not provide MQTT configuration or control.
+
+The visible badge text is determined only from MQTT `state`:
+
+| MQTT state | Badge text | Semantic treatment |
+|---|---|---|
+| `disabled` | `MQTT DISABLED` | neutral |
+| `connecting` | `MQTT CONNECTING` | pending/warning |
+| `connected` | `MQTT ONLINE` | success |
+| `disconnected` | `MQTT OFFLINE` | error |
+
+Text is always visible; color is not the only state carrier. The status area
+also displays, when available:
+
+- last connected time;
+- last disconnected time;
+- consecutive connection failures;
+- sanitized current MQTT error.
+
+It must not render broker password, username, TLS key material or complete
+low-level network diagnostics. Full-page and HTMX rack fragments use the same
+MQTT health query and status semantics. The module detail page need not repeat
+the MQTT status in version 0.1.
+
+The web UI has no MQTT enable switch, broker settings, credential fields,
+connect/disconnect action or other write operation. MQTT is enabled and
+configured only through validated deployment configuration.
 
 ## ioBroker interoperability
 
@@ -604,6 +645,9 @@ They must verify:
 - MQTT performs no console access, parsing or polling;
 - REST and Web remain operational during broker failure;
 - `/api/v1/health` MQTT fields and combined service-state rules;
+- rack-overview badge text, details, sanitization and HTMX refresh for every
+  MQTT state;
+- absence of MQTT configuration or control operations in the web UI;
 - Docker Compose passes all MQTT environment settings;
 - integration against a real test broker;
 - live ioBroker verification on the Proxmox Docker host.

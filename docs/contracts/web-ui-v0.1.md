@@ -3,7 +3,8 @@
 ## Status
 
 Accepted for implementation by GitHub issue #21. The cell-voltage
-visualization requirements are refined by GitHub issues #27 and #30.
+visualization requirements are refined by GitHub issues #27 and #30. MQTT
+status requirements are refined by GitHub issue #33.
 
 This document refines the web-interface requirements in `version-0.1.md`. If
 the two documents conflict, implementation must stop until the conflict is
@@ -48,6 +49,9 @@ console commands.
 `GET /` displays:
 
 - service and connection status;
+- MQTT status as `MQTT DISABLED`, `MQTT CONNECTING`, `MQTT ONLINE` or
+  `MQTT OFFLINE`, plus available connection timestamps, failure count and
+  sanitized error;
 - sanitized current errors;
 - last successful acquisition and data ages;
 - detected and present module count;
@@ -64,6 +68,22 @@ module with its stable barcode, current position, presence, model, voltage,
 current, SOC, basic state, cell-voltage minimum/maximum/delta, age, validity
 and staleness. Each module links to its barcode-based detail page. Version 0.1
 does not require a separate `GET /modules` overview page.
+
+### MQTT status
+
+The MQTT status on the rack overview is a read-only operational indicator. Its
+authoritative state, labels, timestamps, failure count, error sanitization and
+effect on combined service health are defined in `mqtt-v0.1.md`.
+
+The badge always contains visible text, so color is not the only state
+carrier. Full-page rendering and HTMX rack-fragment refreshes use the same
+shared MQTT health query. MQTT broker credentials, TLS key material and
+complete low-level network diagnostics are never rendered.
+
+The web UI must not contain an MQTT enable switch, broker configuration,
+credential fields, connect/disconnect action or any other MQTT write
+operation. MQTT is configured exclusively through validated deployment
+configuration.
 
 ### Module detail
 
@@ -312,6 +332,7 @@ Tests use controlled `CurrentStateStore` snapshots and a fixed clock. They
 must verify:
 
 - rack overview rendering and required values;
+- all four MQTT badge states and optional MQTT status details;
 - every discovered module appears in position order;
 - module links and lookup use stable barcodes;
 - unknown-module HTTP 404 behavior;
@@ -344,6 +365,7 @@ must verify:
 - HTMX fragments use the same query/view-model layer as full pages and REST;
 - web requests execute no console commands and start no polling;
 - no write or arbitrary-command routes are introduced;
+- no MQTT configuration or control operation is introduced;
 - existing REST behavior and tests remain unchanged;
 - initial load, unchanged values and first appearances do not trigger the
   transient cell-voltage change indication;
