@@ -366,7 +366,8 @@ must verify:
 - web requests execute no console commands and start no polling;
 - no write or arbitrary-command routes are introduced;
 - no MQTT configuration or control operation is introduced;
-- existing REST behavior and tests remain unchanged;
+- existing REST behavior and tests remain unchanged except for the MQTT
+  health extension explicitly defined in `mqtt-v0.1.md`;
 - initial load, unchanged values and first appearances do not trigger the
   transient cell-voltage change indication;
 - changed numeric cell voltage triggers only its primary text for 3 seconds,
@@ -419,4 +420,5 @@ and narrow viewport sizes.
 - write operations;
 - arbitrary console commands;
 - independent polling, parsing or discovery;
-- changes to the REST response contract.
+- REST response-contract changes other than the MQTT health extension
+  explicitly defined in `mqtt-v0.1.md`.
