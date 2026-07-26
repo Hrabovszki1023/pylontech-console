@@ -8,7 +8,12 @@ from pylontech_console.mqtt_health import (
     MqttHealth,
 )
 from pylontech_console.outputs.web.query import _cell_color
+from pylontech_console.outputs.web.routes import encode_test_id_component
 from tests.web_fixture import RECEIVED_TIME, create_web_test_app
+
+
+def _test_ids(html: str) -> list[str]:
+    return re.findall(r'data-testid="([^"]+)"', html)
 
 
 def test_rack_overview_renders_module_heatmap_and_local_htmx() -> None:
@@ -35,6 +40,53 @@ def test_rack_overview_renders_module_heatmap_and_local_htmx() -> None:
     assert "https://unpkg.com" not in response.text
     assert client.get("/assets/app.js").status_code == 200
     assert "MQTT DISABLED" in " ".join(response.text.split())
+
+
+def test_gui_test_id_registry_is_unique_and_shared_with_fragments() -> None:
+    client = TestClient(create_web_test_app())
+    rack_page = client.get("/").text
+    rack_fragment = client.get("/web/fragments/overview").text
+    module_page = client.get("/modules/MODULE-A").text
+    module_fragment = client.get(
+        "/web/fragments/modules/MODULE-A",
+    ).text
+
+    for html in (rack_page, rack_fragment, module_page, module_fragment):
+        ids = _test_ids(html)
+        assert ids
+        assert len(ids) == len(set(ids))
+        assert all(re.fullmatch(r"[A-Za-z0-9._%-]+", value) for value in ids)
+
+    assert set(_test_ids(rack_page)) == set(_test_ids(rack_fragment)) | {
+        "rack-page",
+    }
+    assert set(_test_ids(module_page)) == set(_test_ids(module_fragment)) | {
+        "module-MODULE-A-page",
+    }
+    assert {
+        f"module-MODULE-A-cell-{index}-heatmap"
+        for index in range(15)
+    } <= set(_test_ids(rack_page))
+    assert {
+        f"module-MODULE-A-cell-{index}-row"
+        for index in range(15)
+    } <= set(_test_ids(module_page))
+
+
+def test_test_id_barcode_encoding_is_reversible_and_collision_free() -> None:
+    assert encode_test_id_component("ABC-_.123") == "ABC-_.123"
+    assert encode_test_id_component("A/B% +#") == "A%2FB%25%20%2B%23"
+    assert encode_test_id_component("ä") == "%C3%A4"
+    assert encode_test_id_component("A/B") != encode_test_id_component("A%2FB")
+
+    client = TestClient(
+        create_web_test_app(unsafe_barcode='<x/" onmouseover="secret">'),
+    )
+    html = client.get("/").text
+
+    assert "module-%3Cx%2F%22%20onmouseover%3D%22secret%22%3E-card" in (
+        _test_ids(html)
+    )
 
 
 def test_heatmap_uses_independent_module_averages_and_fixed_deadband() -> None:
@@ -183,7 +235,10 @@ def test_stale_capture_is_neutral_and_excluded_from_module_average() -> None:
     response = client.get("/")
 
     assert response.status_code == 200
-    assert 'class="row-status row-status-stale">stale</small>' in response.text
+    assert (
+        'data-testid="module-MODULE-B-heatmap-status">stale</small>'
+        in response.text
+    )
     assert response.text.count(
         'class="heat-cell heat-cell-stale absolute-stale"',
     ) == 15

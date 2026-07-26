@@ -13,6 +13,18 @@ WEB_ROOT = Path(__file__).parent
 templates = Jinja2Templates(directory=WEB_ROOT / "templates")
 
 
+def encode_test_id_component(value: str) -> str:
+    """Encode device identity as one reversible test-ID component."""
+    allowed = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_."
+    return "".join(
+        chr(byte) if byte in allowed else f"%{byte:02X}"
+        for byte in value.encode("utf-8")
+    )
+
+
+templates.env.filters["testid"] = encode_test_id_component
+
+
 def create_web_router(
     query: StateQuery,
     settings: WebSettings,

@@ -1,4 +1,5 @@
-<section class="hero">
+<div data-testid="rack-current-state">
+<section class="hero" data-testid="rack-health">
   <div>
     <p class="eyebrow">Live rack</p>
     <h1>Energy at cell level</h1>
@@ -8,11 +9,11 @@
     </p>
   </div>
   <div class="hero-status">
-    <span class="connection connection-{{ page.health.status }}">
+    <span class="connection connection-{{ page.health.status }}" data-testid="service-status">
       <span class="pulse" aria-hidden="true"></span>
       {{ page.health.status | upper }}
     </span>
-    <span class="mqtt-status mqtt-status-{{ page.health.mqtt.state }}">
+    <span class="mqtt-status mqtt-status-{{ page.health.mqtt.state }}" data-testid="mqtt-status">
       MQTT
       {% if page.health.mqtt.state == "connected" %}
         ONLINE
@@ -23,73 +24,73 @@
       {% endif %}
     </span>
     {% if page.health.mqtt.last_connected_at %}
-      <small>
+      <small data-testid="mqtt-last-connected-at">
         MQTT connected
         {{ page.health.mqtt.last_connected_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}
       </small>
     {% endif %}
     {% if page.health.mqtt.last_disconnected_at %}
-      <small>
+      <small data-testid="mqtt-last-disconnected-at">
         MQTT disconnected
         {{ page.health.mqtt.last_disconnected_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}
       </small>
     {% endif %}
     {% if page.health.mqtt.consecutive_failures %}
-      <small>MQTT failures {{ page.health.mqtt.consecutive_failures }}</small>
+      <small data-testid="mqtt-consecutive-failures">MQTT failures {{ page.health.mqtt.consecutive_failures }}</small>
     {% endif %}
     {% if page.health.mqtt.error %}
-      <small class="mqtt-error">MQTT error · {{ page.health.mqtt.error }}</small>
+      <small class="mqtt-error" data-testid="mqtt-error">MQTT error · {{ page.health.mqtt.error }}</small>
     {% endif %}
-    <small>
+    <small data-testid="rack-age">
       Rack data
       {{ "%.1f s old"|format(page.rack_metadata.age_seconds) if page.rack_metadata.age_seconds is not none else "not received" }}
     </small>
-    <small>Snapshot {{ page.generated_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}</small>
+    <small data-testid="rack-snapshot-at">Snapshot {{ page.generated_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}</small>
   </div>
 </section>
 
 {% if page.errors %}
-  <section class="alerts" aria-label="Current acquisition errors">
+  <section class="alerts" aria-label="Current acquisition errors" data-testid="service-errors">
     {% for error in page.errors %}
-      <p><strong>{{ error.group }}</strong> · {{ error.detail }}</p>
+      <p data-testid="service-error-{{ loop.index0 }}"><strong>{{ error.group }}</strong> · {{ error.detail }}</p>
     {% endfor %}
   </section>
 {% endif %}
 
 <section class="metrics" aria-label="Rack measurements">
-  <article class="metric metric-primary">
+  <article class="metric metric-primary" data-testid="rack-soc">
     <span>Rack SOC</span>
     <strong>{{ page.rack.soc_percent if page.rack else "N/A" }}{% if page.rack %}%{% endif %}</strong>
     <small>State of charge</small>
   </article>
-  <article class="metric">
+  <article class="metric" data-testid="rack-voltage">
     <span>Rack voltage</span>
     <strong>{{ "%.2f"|format(page.rack.voltage_mv / 1000) if page.rack else "N/A" }}</strong>
     <small>{% if page.rack %}V{% else %}Unavailable{% endif %}</small>
   </article>
-  <article class="metric">
+  <article class="metric" data-testid="rack-current">
     <span>Rack current</span>
     <strong>{{ "%+.2f"|format(page.rack.current_ma / 1000) if page.rack else "N/A" }}</strong>
     <small>{% if page.rack %}A{% else %}Unavailable{% endif %}</small>
   </article>
-  <article class="metric">
+  <article class="metric" data-testid="rack-power">
     <span>Rack power</span>
     <strong>{{ "%+.0f"|format(page.rack.derived.power_w) if page.rack else "N/A" }}</strong>
     <small>{% if page.rack %}W derived{% else %}Unavailable{% endif %}</small>
   </article>
-  <article class="metric">
+  <article class="metric" data-testid="rack-cell-voltage-delta">
     <span>Cell spread</span>
     <strong>{{ page.rack.derived.cell_voltage_delta_mv if page.rack else "N/A" }}</strong>
     <small>{% if page.rack %}mV rack-wide{% else %}Unavailable{% endif %}</small>
   </article>
-  <article class="metric">
+  <article class="metric" data-testid="rack-present-modules">
     <span>Modules</span>
     <strong>{{ page.rack.present_modules if page.rack else page.modules|selectattr("present", "equalto", true)|list|length }}</strong>
     <small>{{ page.health.cell_groups.total_cells }} cells captured</small>
   </article>
 </section>
 
-<section class="panel heatmap-panel">
+<section class="panel heatmap-panel" data-testid="cell-voltage-heatmap">
   <div class="section-heading">
     <div>
       <p class="eyebrow">Voltage safety view</p>
@@ -100,14 +101,14 @@
         neutral zone is white. Borders show absolute voltage state.
       </p>
     </div>
-    <div class="legend" aria-label="Heatmap legend">
+    <div class="legend" aria-label="Heatmap legend" data-testid="cell-voltage-heatmap-legend">
       <span>−{{ "%.0f"|format(page.heatmap_scale_limit_mv) }} mV</span>
       <div class="legend-scale" aria-hidden="true"></div>
       <span>±{{ "%.0f"|format(page.heatmap_deadband_mv) }} mV neutral</span>
       <div class="legend-scale legend-scale-positive" aria-hidden="true"></div>
       <span>+{{ "%.0f"|format(page.heatmap_scale_limit_mv) }} mV</span>
     </div>
-    <div class="absolute-legend" aria-label="Absolute cell-voltage states">
+    <div class="absolute-legend" aria-label="Absolute cell-voltage states" data-testid="cell-voltage-absolute-legend">
       <span class="absolute-key absolute-key-balancing">Charge/balancing ≥{{ page.cell_high_balancing_mv }} mV</span>
       <span class="absolute-key absolute-key-warning">
         Low ≤{{ page.cell_low_warning_mv }} · high ≥{{ page.cell_high_warning_mv }} mV
@@ -133,19 +134,19 @@
         </thead>
         <tbody>
           {% for row in page.heatmap_rows %}
-            <tr>
+            <tr data-testid="module-{{ row.barcode | testid }}-heatmap-row">
               <th scope="row" class="module-label">
                 <span>Position {{ row.position }}</span>
-                <a href="/modules/{{ row.barcode | urlencode }}">{{ row.barcode }}</a>
-                <small class="row-status row-status-{{ row.status }}">{{ row.status }}</small>
+                <a data-testid="module-{{ row.barcode | testid }}-heatmap-link" href="/modules/{{ row.barcode | urlencode }}">{{ row.barcode }}</a>
+                <small class="row-status row-status-{{ row.status }}" data-testid="module-{{ row.barcode | testid }}-heatmap-status">{{ row.status }}</small>
               </th>
-              <td class="summary-cell">
+              <td class="summary-cell" data-testid="module-{{ row.barcode | testid }}-voltage">
                 {% if row.module_voltage_mv is not none %}
                   <strong>{{ "%.3f"|format(row.module_voltage_mv / 1000) }}</strong>
                   <small>V</small>
                 {% else %}N/A{% endif %}
               </td>
-              <td class="summary-cell">
+              <td class="summary-cell" data-testid="module-{{ row.barcode | testid }}-cell-average">
                 {% if row.module_average_cell_voltage_mv is not none %}
                   <strong>{{ "%.2f"|format(row.module_average_cell_voltage_mv) }}</strong>
                   <small>mV</small>
@@ -160,24 +161,26 @@
                   data-status="{{ cell.status }}"
                   data-absolute-state="{{ cell.absolute_state }}"
                   data-deviation="{{ '%.4f'|format(cell.deviation_mv) if cell.deviation_mv is not none else '' }}"
+                  data-testid="module-{{ row.barcode | testid }}-cell-{{ cell.index }}-heatmap"
                 >
                   {% if cell.voltage_mv is not none %}
                     <strong
                       class="cell-voltage-value"
+                      data-testid="module-{{ row.barcode | testid }}-cell-{{ cell.index }}-heatmap-voltage"
                       {% if cell.status == "current" %}
                         data-cell-voltage-key="{{ row.barcode }}:{{ cell.index }}"
                         data-cell-voltage-mv="{{ cell.voltage_mv }}"
                       {% endif %}
                     >{{ cell.voltage_mv }}</strong>
-                    <small>
+                    <small data-testid="module-{{ row.barcode | testid }}-cell-{{ cell.index }}-heatmap-deviation">
                       {{ "%+.2f"|format(cell.deviation_mv) if cell.deviation_mv is not none else cell.status }}
                     </small>
                     {% if cell.absolute_state not in ["normal", "current"] %}
                       <span class="cell-absolute-label">{{ cell.absolute_label }}</span>
                     {% endif %}
                   {% else %}
-                    <strong>N/A</strong>
-                    <small>unavailable</small>
+                    <strong data-testid="module-{{ row.barcode | testid }}-cell-{{ cell.index }}-heatmap-voltage">N/A</strong>
+                    <small data-testid="module-{{ row.barcode | testid }}-cell-{{ cell.index }}-heatmap-deviation">unavailable</small>
                   {% endif %}
                 </td>
               {% endfor %}
@@ -187,41 +190,43 @@
       </table>
     </div>
   {% else %}
-    <div class="empty-state">No present modules are available for the heatmap.</div>
+    <div class="empty-state" data-testid="cell-voltage-heatmap-unavailable">No present modules are available for the heatmap.</div>
   {% endif %}
 </section>
 
 <section class="two-column">
-  <article class="panel">
+  <article class="panel" data-testid="module-overview">
     <div class="section-heading">
       <div>
         <p class="eyebrow">Inventory</p>
         <h2>Module overview</h2>
       </div>
-      {% with metadata=page.health.inventory %}
+      {% with metadata=page.health.inventory, testid="inventory-status" %}
         {% include "fragments/status_badge.html" %}
       {% endwith %}
     </div>
-    <div class="module-list">
+    <div class="module-list" data-testid="topology">
       {% for module in page.modules %}
-        <a class="module-card" href="/modules/{{ module.barcode | urlencode }}">
+        <a class="module-card" data-testid="module-{{ module.barcode | testid }}-card" href="/modules/{{ module.barcode | urlencode }}">
           <div>
-            <span>Position {{ module.position if module.position is not none else "—" }}</span>
-            <strong>{{ module.barcode }}</strong>
-            <small>{{ module.model }} · {{ module.basic_status or "No state" }}</small>
+            <span {% if module.position is not none %}data-testid="topology-position-{{ module.position }}"{% endif %}>
+              <span data-testid="module-{{ module.barcode | testid }}-position">Position {{ module.position if module.position is not none else "—" }}</span>
+            </span>
+            <strong data-testid="module-{{ module.barcode | testid }}-barcode">{{ module.barcode }}</strong>
+            <small data-testid="module-{{ module.barcode | testid }}-state">{{ module.model }} · {{ module.basic_status or "No state" }}</small>
           </div>
           <dl>
-            <div><dt>Voltage</dt><dd>{{ "%.3f V"|format(module.voltage_mv / 1000) if module.voltage_mv is not none else "N/A" }}</dd></div>
-            <div><dt>SOC</dt><dd>{{ module.soc_percent ~ "%" if module.soc_percent is not none else "N/A" }}</dd></div>
-            <div><dt>Spread</dt><dd>{{ module.cell_voltage_delta_mv ~ " mV" if module.cell_voltage_delta_mv is not none else "N/A" }}</dd></div>
-            <div>
+            <div data-testid="module-{{ module.barcode | testid }}-voltage-summary"><dt>Voltage</dt><dd>{{ "%.3f V"|format(module.voltage_mv / 1000) if module.voltage_mv is not none else "N/A" }}</dd></div>
+            <div data-testid="module-{{ module.barcode | testid }}-soc"><dt>SOC</dt><dd>{{ module.soc_percent ~ "%" if module.soc_percent is not none else "N/A" }}</dd></div>
+            <div data-testid="module-{{ module.barcode | testid }}-cell-voltage-delta"><dt>Spread</dt><dd>{{ module.cell_voltage_delta_mv ~ " mV" if module.cell_voltage_delta_mv is not none else "N/A" }}</dd></div>
+            <div data-testid="module-{{ module.barcode | testid }}-detail-status">
               <dt>Detail</dt>
               <dd>
                 {{ "invalid" if not module.detail_metadata.valid else ("stale" if module.detail_metadata.stale else "current") }}
                 · {{ "%.1f s"|format(module.detail_metadata.age_seconds) if module.detail_metadata.age_seconds is not none else "never" }}
               </dd>
             </div>
-            <div>
+            <div data-testid="module-{{ module.barcode | testid }}-cells-status">
               <dt>Cells</dt>
               <dd>
                 {{ "invalid" if not module.cell_metadata.valid else ("stale" if module.cell_metadata.stale else "current") }}
@@ -237,23 +242,24 @@
     </div>
   </article>
 
-  <article class="panel">
+  <article class="panel" data-testid="rack-limits">
     <p class="eyebrow">Rack detail</p>
     <h2>Limits &amp; temperature</h2>
     {% if page.rack %}
       <dl class="detail-grid">
-        <div><dt>BMS cell average</dt><dd>{{ page.rack.average_cell_voltage_mv }} mV</dd></div>
-        <div><dt>Cell range</dt><dd>{{ page.rack.lowest_cell_voltage_mv }}–{{ page.rack.highest_cell_voltage_mv }} mV</dd></div>
-        <div><dt>Temperature range</dt><dd>{{ "%.1f"|format(page.rack.lowest_temperature_mc / 1000) }}–{{ "%.1f"|format(page.rack.highest_temperature_mc / 1000) }} °C</dd></div>
-        <div><dt>Average temperature</dt><dd>{{ "%.1f"|format(page.rack.average_temperature_mc / 1000) }} °C</dd></div>
-        <div><dt>Charge voltage</dt><dd>{{ "%.2f"|format(page.rack.recommended_charge_voltage_mv / 1000) }} V</dd></div>
-        <div><dt>Discharge voltage</dt><dd>{{ "%.2f"|format(page.rack.recommended_discharge_voltage_mv / 1000) }} V</dd></div>
-        <div><dt>Charge current</dt><dd>{{ "%.1f"|format(page.rack.recommended_charge_current_ma / 1000) }} A</dd></div>
-        <div><dt>Discharge current</dt><dd>{{ "%.1f"|format(page.rack.recommended_discharge_current_ma / 1000) }} A</dd></div>
-        <div><dt>SOH</dt><dd>{{ page.rack.soh_percent }}%</dd></div>
+        <div data-testid="rack-average-cell-voltage"><dt>BMS cell average</dt><dd>{{ page.rack.average_cell_voltage_mv }} mV</dd></div>
+        <div data-testid="rack-cell-voltage-range"><dt>Cell range</dt><dd>{{ page.rack.lowest_cell_voltage_mv }}–{{ page.rack.highest_cell_voltage_mv }} mV</dd></div>
+        <div data-testid="rack-temperature-range"><dt>Temperature range</dt><dd>{{ "%.1f"|format(page.rack.lowest_temperature_mc / 1000) }}–{{ "%.1f"|format(page.rack.highest_temperature_mc / 1000) }} °C</dd></div>
+        <div data-testid="rack-average-temperature"><dt>Average temperature</dt><dd>{{ "%.1f"|format(page.rack.average_temperature_mc / 1000) }} °C</dd></div>
+        <div data-testid="rack-charge-voltage-limit"><dt>Charge voltage</dt><dd>{{ "%.2f"|format(page.rack.recommended_charge_voltage_mv / 1000) }} V</dd></div>
+        <div data-testid="rack-discharge-voltage-limit"><dt>Discharge voltage</dt><dd>{{ "%.2f"|format(page.rack.recommended_discharge_voltage_mv / 1000) }} V</dd></div>
+        <div data-testid="rack-charge-current-limit"><dt>Charge current</dt><dd>{{ "%.1f"|format(page.rack.recommended_charge_current_ma / 1000) }} A</dd></div>
+        <div data-testid="rack-discharge-current-limit"><dt>Discharge current</dt><dd>{{ "%.1f"|format(page.rack.recommended_discharge_current_ma / 1000) }} A</dd></div>
+        <div data-testid="rack-soh"><dt>SOH</dt><dd>{{ page.rack.soh_percent }}%</dd></div>
       </dl>
     {% else %}
       <p class="empty-state">Rack measurements are not available.</p>
     {% endif %}
   </article>
 </section>
+</div>
