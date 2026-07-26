@@ -1,9 +1,14 @@
 from fastapi.testclient import TestClient
 import re
+import pytest
 
 from pylontech_console.config import WebSettings
+from pylontech_console.mqtt_health import (
+    MqttConnectionState,
+    MqttHealth,
+)
 from pylontech_console.outputs.web.query import _cell_color
-from tests.web_fixture import create_web_test_app
+from tests.web_fixture import RECEIVED_TIME, create_web_test_app
 
 
 def test_rack_overview_renders_module_heatmap_and_local_htmx() -> None:
@@ -29,6 +34,7 @@ def test_rack_overview_renders_module_heatmap_and_local_htmx() -> None:
     assert "cell-voltage-changed" not in response.text
     assert "https://unpkg.com" not in response.text
     assert client.get("/assets/app.js").status_code == 200
+    assert "MQTT DISABLED" in " ".join(response.text.split())
 
 
 def test_heatmap_uses_independent_module_averages_and_fixed_deadband() -> None:
@@ -231,3 +237,48 @@ def test_web_adapter_adds_no_write_or_command_routes() -> None:
     assert client.post("/").status_code == 405
     assert client.get("/commands").status_code == 404
     assert client.post("/modules/MODULE-A").status_code == 405
+
+
+@pytest.mark.parametrize(
+    ("state", "label"),
+    [
+        (MqttConnectionState.DISABLED, "MQTT DISABLED"),
+        (MqttConnectionState.CONNECTING, "MQTT CONNECTING"),
+        (MqttConnectionState.CONNECTED, "MQTT ONLINE"),
+        (MqttConnectionState.DISCONNECTED, "MQTT OFFLINE"),
+    ],
+)
+def test_mqtt_status_badges_are_read_only(
+    state: MqttConnectionState,
+    label: str,
+) -> None:
+    connected = state is MqttConnectionState.CONNECTED
+    client = TestClient(
+        create_web_test_app(
+            mqtt_health=MqttHealth(
+                enabled=state is not MqttConnectionState.DISABLED,
+                state=state,
+                connected=connected,
+                last_connected_at=(
+                    RECEIVED_TIME if connected else None
+                ),
+                consecutive_failures=(
+                    1 if state is MqttConnectionState.DISCONNECTED else 0
+                ),
+                error=(
+                    "MQTT broker unavailable"
+                    if state is MqttConnectionState.DISCONNECTED
+                    else None
+                ),
+            ),
+        ),
+    )
+
+    response = client.get("/")
+
+    assert label in " ".join(response.text.split())
+    if state is MqttConnectionState.DISCONNECTED:
+        assert "MQTT broker unavailable" in response.text
+    assert 'type="password"' not in response.text
+    assert "MQTT enable" not in response.text
+    assert client.post("/mqtt").status_code == 404

@@ -12,6 +12,34 @@
       <span class="pulse" aria-hidden="true"></span>
       {{ page.health.status | upper }}
     </span>
+    <span class="mqtt-status mqtt-status-{{ page.health.mqtt.state }}">
+      MQTT
+      {% if page.health.mqtt.state == "connected" %}
+        ONLINE
+      {% elif page.health.mqtt.state == "disconnected" %}
+        OFFLINE
+      {% else %}
+        {{ page.health.mqtt.state | upper }}
+      {% endif %}
+    </span>
+    {% if page.health.mqtt.last_connected_at %}
+      <small>
+        MQTT connected
+        {{ page.health.mqtt.last_connected_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+      </small>
+    {% endif %}
+    {% if page.health.mqtt.last_disconnected_at %}
+      <small>
+        MQTT disconnected
+        {{ page.health.mqtt.last_disconnected_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+      </small>
+    {% endif %}
+    {% if page.health.mqtt.consecutive_failures %}
+      <small>MQTT failures {{ page.health.mqtt.consecutive_failures }}</small>
+    {% endif %}
+    {% if page.health.mqtt.error %}
+      <small class="mqtt-error">MQTT error · {{ page.health.mqtt.error }}</small>
+    {% endif %}
     <small>
       Rack data
       {{ "%.1f s old"|format(page.rack_metadata.age_seconds) if page.rack_metadata.age_seconds is not none else "not received" }}

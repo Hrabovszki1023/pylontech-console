@@ -26,6 +26,12 @@ from pylontech_console.domain.process import (
     RackSummary,
 )
 from pylontech_console.outputs.api import create_application
+from pylontech_console.mqtt_health import (
+    MqttConnectionState,
+    MqttHealth,
+    MqttHealthStore,
+)
+from pylontech_console.outputs.api.query import StateQuery
 from pylontech_console.polling import CurrentStateStore
 
 T0 = datetime(2026, 7, 19, 14, 30, tzinfo=timezone.utc)
@@ -141,6 +147,15 @@ def test_all_read_endpoints_and_serialization() -> None:
     assert len(module.json()["cells"]["value"]) == 2
     assert "raw_payload" not in str(module.json())
     assert events.json()["events"][0]["kind"] == "MODULE_DISCOVERED"
+    assert health.json()["mqtt"] == {
+        "enabled": False,
+        "state": "disabled",
+        "connected": False,
+        "last_connected_at": None,
+        "last_disconnected_at": None,
+        "consecutive_failures": 0,
+        "error": None,
+    }
 
 
 def test_unknown_and_validation_behavior_and_no_write_routes() -> None:
@@ -190,3 +205,25 @@ def test_application_lifecycle_starts_and_stops_runtime() -> None:
         assert api.get("/api/v1/health").status_code == 200
 
     assert calls == ["start", "stop"]
+
+
+def test_enabled_unconnected_mqtt_degrades_otherwise_online_health() -> None:
+    state = replace(
+        CurrentState.empty(5, 60, 300, 2),
+        connection=ConnectionState.ONLINE,
+    )
+    store = CurrentStateStore(state)
+    mqtt_health = MqttHealthStore(
+        MqttHealth(
+            enabled=True,
+            state=MqttConnectionState.CONNECTING,
+            connected=False,
+        ),
+    )
+    query = StateQuery(store, clock=lambda: NOW, mqtt_health=mqtt_health)
+    api = TestClient(create_application(store, query=query))
+
+    response = api.get("/api/v1/health").json()
+
+    assert response["status"] == "degraded"
+    assert response["mqtt"]["state"] == "connecting"

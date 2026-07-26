@@ -203,6 +203,16 @@ class CellCountModel(ApiModel):
     stale_groups: int
 
 
+class MqttHealthModel(ApiModel):
+    enabled: bool
+    state: str
+    connected: bool
+    last_connected_at: datetime | None
+    last_disconnected_at: datetime | None
+    consecutive_failures: int
+    error: str | None
+
+
 class HealthModel(ApiModel):
     generated_at: datetime
     status: str
@@ -213,6 +223,7 @@ class HealthModel(ApiModel):
     rack: MetadataModel
     module_details: CountModel
     cell_groups: CellCountModel
+    mqtt: MqttHealthModel
     errors: list[ErrorModel]
 
 

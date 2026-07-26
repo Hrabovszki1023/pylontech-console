@@ -73,6 +73,7 @@ def live_web() -> Iterator[LiveWeb]:
 def _assert_page(page: Page, url: str, viewport: ViewportSize) -> None:
     page.set_viewport_size(viewport)
     page.goto(url, wait_until="networkidle")
+    assert page.get_by_text("MQTT DISABLED", exact=True).is_visible()
     assert page.get_by_role("heading", name="Cell-voltage heatmap").is_visible()
     assert page.locator(".heat-cell").count() == 30
     assert page.locator(".absolute-critical").count() == 1

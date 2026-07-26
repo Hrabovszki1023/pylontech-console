@@ -1,12 +1,16 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from pylontech_console.config import (
     HttpSettings,
+    MqttSettings,
     PollingSettings,
     WebSettings,
     WaveshareSettings,
     load_polling_settings,
+    load_mqtt_settings,
     load_waveshare_settings,
     load_web_settings,
 )
@@ -17,6 +21,7 @@ ENVIRONMENT_VARIABLES = (
     "PYLONTECH_WAVESHARE_CONNECT_TIMEOUT_SECONDS",
     "PYLONTECH_WAVESHARE_RESPONSE_TIMEOUT_SECONDS",
 )
+PROJECT_ROOT = Path(__file__).parents[2]
 
 
 def clear_waveshare_environment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -191,3 +196,97 @@ def test_web_loads_environment_overrides(
 def test_web_rejects_invalid_values(values: dict[str, int]) -> None:
     with pytest.raises(ValidationError):
         WebSettings(**values)
+
+
+def test_mqtt_uses_safe_disabled_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in (
+        "PYLONTECH_MQTT_ENABLED",
+        "PYLONTECH_MQTT_HOST",
+        "PYLONTECH_MQTT_PORT",
+        "PYLONTECH_MQTT_CLIENT_ID",
+        "PYLONTECH_MQTT_TOPIC_PREFIX",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = load_mqtt_settings()
+
+    assert settings.enabled is False
+    assert settings.host is None
+    assert settings.port == 1883
+    assert settings.client_id == "pylontech-console"
+    assert settings.topic_prefix == "pylontech"
+
+
+def test_mqtt_loads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PYLONTECH_MQTT_ENABLED", "true")
+    monkeypatch.setenv("PYLONTECH_MQTT_HOST", " broker.local ")
+    monkeypatch.setenv("PYLONTECH_MQTT_PORT", "1884")
+    monkeypatch.setenv("PYLONTECH_MQTT_USERNAME", "user")
+    monkeypatch.setenv("PYLONTECH_MQTT_PASSWORD", "secret")
+    monkeypatch.setenv("PYLONTECH_MQTT_TOPIC_PREFIX", "home/battery")
+
+    settings = load_mqtt_settings()
+
+    assert settings.enabled is True
+    assert settings.host == "broker.local"
+    assert settings.port == 1884
+    assert settings.username == "user"
+    assert settings.password == "secret"
+    assert settings.topic_prefix == "home/battery"
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"enabled": True},
+        {"port": 0},
+        {"client_id": ""},
+        {"client_id": "x" * 129},
+        {"topic_prefix": "/pylontech"},
+        {"topic_prefix": "pylontech/"},
+        {"topic_prefix": "pylontech//rack"},
+        {"topic_prefix": "pylontech/#"},
+        {"password": "secret"},
+        {"reconnect_min_seconds": 10, "reconnect_max_seconds": 5},
+        {"connect_timeout_seconds": float("inf")},
+        {"tls_insecure": True},
+        {"tls_cert_file": "cert.pem"},
+    ],
+)
+
+
+def test_mqtt_rejects_invalid_configuration(
+    values: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        MqttSettings.model_validate(values)
+
+
+def test_compose_passes_every_mqtt_contract_variable() -> None:
+    compose = (PROJECT_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    expected = {
+        "ENABLED",
+        "HOST",
+        "PORT",
+        "CLIENT_ID",
+        "USERNAME",
+        "PASSWORD",
+        "TOPIC_PREFIX",
+        "KEEPALIVE_SECONDS",
+        "CONNECT_TIMEOUT_SECONDS",
+        "RECONNECT_MIN_SECONDS",
+        "RECONNECT_MAX_SECONDS",
+        "TLS_ENABLED",
+        "TLS_CA_FILE",
+        "TLS_CERT_FILE",
+        "TLS_KEY_FILE",
+        "TLS_INSECURE",
+    }
+
+    assert {
+        suffix
+        for suffix in expected
+        if f"PYLONTECH_MQTT_{suffix}:" in compose
+    } == expected
