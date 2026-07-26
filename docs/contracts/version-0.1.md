@@ -298,6 +298,9 @@ Version 0.1 does not require editing configuration through the web interface.
 
 MQTT shall be the primary integration interface for ioBroker and downstream automation.
 
+The concrete protocol, topic, payload, lifecycle, configuration, health,
+failure and verification contract is defined in `mqtt-v0.1.md`.
+
 Primary module topics shall use the barcode as the stable key.
 
 Example topic structure:
@@ -336,7 +339,7 @@ pylontech/modules/<barcode>/cells/<cell-index>/balancing
 
 Each published data object or topic group shall expose sufficient freshness information to distinguish current from stale values.
 
-Recommended metadata:
+Required metadata is defined by `mqtt-v0.1.md` and includes:
 
 ```text
 received_at

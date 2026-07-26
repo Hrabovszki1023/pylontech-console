@@ -135,7 +135,16 @@ The health response contains:
 - module-detail counts: `total`, `valid`, `invalid`, `stale`;
 - cell-group counts: `module_groups`, `total_cells`, `valid_groups`,
   `invalid_groups`, `stale_groups`;
+- MQTT runtime state: `enabled`, `connected`, `last_connected_at`,
+  `last_disconnected_at`, `consecutive_failures` and sanitized `error`;
 - sanitized current `errors`.
+
+The MQTT health object and its effect on the combined service status are
+defined in `mqtt-v0.1.md`. Disabled MQTT does not affect service status.
+Enabled but disconnected MQTT makes a battery-otherwise-online service
+`degraded`. `offline` remains reserved for unavailable battery
+communication. Battery `starting` and `discovering` states retain their
+meaning while MQTT reports its connection independently.
 
 ## Rack
 
