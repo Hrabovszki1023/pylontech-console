@@ -95,3 +95,26 @@ variables and validation rules are defined in
 The rack page and `GET /api/v1/health` show MQTT connection state. MQTT remains
 publish-only: it subscribes to no command topics and cannot change battery
 state.
+
+## Docker Hub images
+
+Published images use:
+
+```text
+docker.io/hrabovszki/pylontech-console
+```
+
+The current `main` build can be pulled with:
+
+```bash
+docker pull hrabovszki/pylontech-console:main
+```
+
+Every `main` image also has a commit-specific `sha-*` tag. Version tags such
+as `v0.1.0-beta.1` publish `0.1.0-beta.1`; prereleases do not move `latest`.
+The `latest` tag is reserved for stable semantic-version releases.
+
+The published container is configured with the same validated
+`PYLONTECH_WAVESHARE_*`, `PYLONTECH_HTTP_*`, `PYLONTECH_WEB_*` and
+`PYLONTECH_MQTT_*` environment variables used by Docker Compose. Images
+currently target `linux/amd64`.

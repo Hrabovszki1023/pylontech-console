@@ -23,6 +23,8 @@ dev = [
     "mypy",
     "pytest",
     "pytest-asyncio",
+    "pyyaml",
+    "types-pyyaml",
     "httpx",
     "ruff",
 ]
