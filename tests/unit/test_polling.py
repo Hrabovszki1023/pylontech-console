@@ -163,7 +163,9 @@ async def test_polling_is_serial_and_barcode_keyed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_partial_cell_failure_keeps_other_module_valid() -> None:
+async def test_partial_cell_failure_keeps_other_module_valid(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     client = FakeClient()
     client.fail_cells.add(1)
     service = PollingService(client, PollingSettings(), clock=lambda: T1)
@@ -176,6 +178,10 @@ async def test_partial_cell_failure_keeps_other_module_valid() -> None:
     assert state.modules["B2"].cells.valid
     assert state.errors[0].detail == "cells acquisition failed"
     assert "sensitive" not in state.errors[0].detail
+    assert (
+        "cells acquisition failed (barcode=B1, position=1): sensitive"
+        in caplog.text
+    )
     with pytest.raises(TypeError):
         state.modules["other"] = state.modules["B1"]  # type: ignore[index]
 

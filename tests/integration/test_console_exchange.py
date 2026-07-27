@@ -250,3 +250,84 @@ async def test_peer_abort_before_end_marker_disconnects_transport() -> None:
         await transport.disconnect()
         server.close()
         await server.wait_closed()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["timeout", "eof", "reset"])
+async def test_next_exchange_reconnects_after_transport_failure(
+    failure: str,
+) -> None:
+    connections = 0
+    commands: list[bytes] = []
+    reconnect_delays: list[float] = []
+    first_handler_finished = asyncio.Event()
+
+    async def fast_sleep(seconds: float) -> None:
+        reconnect_delays.append(seconds)
+
+    async def handle(
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+    ) -> None:
+        nonlocal connections
+        connections += 1
+        connection = connections
+        command = await reader.readuntil(b"\r")
+        commands.append(command)
+        if connection == 1:
+            if failure == "timeout":
+                await reader.read()
+            elif failure == "eof":
+                writer.close()
+                await writer.wait_closed()
+            else:
+                writer.transport.abort()
+            first_handler_finished.set()
+            return
+
+        writer.write(b"@\nrecovered\n$$")
+        await writer.drain()
+
+    server, port = await start_server(handle)
+    transport = AsyncTcpTransport(
+        "127.0.0.1",
+        port,
+        1,
+        reconnect_min_seconds=1,
+        reconnect_max_seconds=2,
+        sleep=fast_sleep,
+    )
+    client = FramedConsoleClient(
+        transport,
+        0.01 if failure == "timeout" else 1,
+    )
+    recovery_client = FramedConsoleClient(transport, 1)
+
+    try:
+        await transport.connect()
+        expected_error: tuple[type[BaseException], ...]
+        if failure == "timeout":
+            expected_error = (TransportResponseTimeoutError,)
+        elif failure == "eof":
+            expected_error = (IncompleteResponseError,)
+        else:
+            expected_error = (
+                IncompleteResponseError,
+                ConnectionResetError,
+            )
+
+        with pytest.raises(expected_error):
+            await client.execute("first")
+
+        await first_handler_finished.wait()
+        assert not transport.is_connected
+
+        assert await recovery_client.execute("second") == "recovered"
+        assert transport.is_connected
+        assert connections == 2
+        assert commands == [b"first\r", b"second\r"]
+        assert reconnect_delays == [1]
+    finally:
+        await transport.disconnect()
+        server.close()
+        await server.wait_closed()

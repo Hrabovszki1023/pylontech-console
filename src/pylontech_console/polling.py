@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -19,6 +20,7 @@ from pylontech_console.domain.process import ModuleCells, ModuleDetail, RackSumm
 from pylontech_console.domain.pwr import PwrSummary
 
 ResultT = TypeVar("ResultT")
+LOGGER = logging.getLogger(__name__)
 
 
 class CellCountMismatchError(ValueError):
@@ -184,6 +186,27 @@ class PollingService:
         )
         await self.run_inventory_once()
 
+    def _log_acquisition_failure(
+        self,
+        group: str,
+        error: Exception,
+        *,
+        barcode: str | None = None,
+        position: int | None = None,
+    ) -> None:
+        LOGGER.warning(
+            "%s acquisition failed (barcode=%s, position=%s): %s",
+            group,
+            barcode if barcode is not None else "-",
+            position if position is not None else "-",
+            error,
+            exc_info=(
+                type(error),
+                error,
+                error.__traceback__,
+            ),
+        )
+
     async def run_inventory_once(self) -> None:
         async with self._cycle_lock:
             await self._run_inventory_once()
@@ -197,7 +220,8 @@ class PollingService:
                 previous.inventory,
                 self,
             )
-        except Exception:
+        except Exception as exception:
+            self._log_acquisition_failure("inventory", exception)
             error = self._error("inventory")
             self._publish(
                 replace(
@@ -280,7 +304,8 @@ class PollingService:
                 interval_seconds=self._settings.rack_interval_seconds,
                 stale_after_multiplier=self._settings.stale_after_multiplier,
             )
-        except Exception:
+        except Exception as exception:
+            self._log_acquisition_failure("rack", exception)
             error = self._error("rack")
             errors.append(error)
             rack = replace(rack, valid=False, error=error)
@@ -306,7 +331,13 @@ class PollingService:
                     interval_seconds=self._settings.rack_interval_seconds,
                     stale_after_multiplier=self._settings.stale_after_multiplier,
                 )
-            except Exception:
+            except Exception as exception:
+                self._log_acquisition_failure(
+                    "cells",
+                    exception,
+                    barcode=barcode,
+                    position=position,
+                )
                 error = self._error(
                     "cells",
                     barcode=barcode,
@@ -348,7 +379,13 @@ class PollingService:
                     stale_after_multiplier=self._settings.stale_after_multiplier,
                 )
                 successful_at = detail.received_at
-            except Exception:
+            except Exception as exception:
+                self._log_acquisition_failure(
+                    "module",
+                    exception,
+                    barcode=barcode,
+                    position=position,
+                )
                 error = self._error(
                     "module",
                     barcode=barcode,

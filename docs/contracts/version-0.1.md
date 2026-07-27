@@ -218,6 +218,7 @@ The console transport uses these constants:
 | Maximum response size | 16 KiB (16,384 bytes) |
 | Default connection timeout | 5 seconds |
 | Default response timeout | 5 seconds |
+| Reconnect backoff | exponential, 1 to 30 seconds |
 
 A successful response is framed by:
 
@@ -243,7 +244,15 @@ Transport handling shall:
 - preserve unknown fields where possible,
 - reject partial responses as valid current data,
 - serialize all console access,
-- reconnect automatically after network or gateway failure.
+- disconnect after a failed exchange,
+- reconnect automatically before the next regular exchange after a network,
+  gateway or protocol failure,
+- use an exponential reconnect delay starting at 1 second and capped at
+  30 seconds,
+- reset the reconnect delay after a successful exchange,
+- log the exception type and message, affected acquisition group and reconnect
+  transitions without credentials or complete console payloads,
+- never automatically replay the failed command within the same exchange.
 
 `<INTERRUPT>` is not part of the Pylontech protocol. It was produced by PuTTY when Ctrl+C was used during manual capture. It shall be removed from stored captures and ignored defensively if encountered in terminal input.
 
