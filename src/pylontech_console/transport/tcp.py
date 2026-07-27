@@ -156,7 +156,7 @@ class AsyncTcpTransport:
 
     async def _reconnect(self) -> None:
         delay = self._reconnect_delay_seconds
-        LOGGER.info(
+        LOGGER.warning(
             "Waveshare TCP reconnect scheduled in %.1f seconds",
             delay,
         )
@@ -176,4 +176,4 @@ class AsyncTcpTransport:
                 exc_info=True,
             )
             raise
-        LOGGER.info("Waveshare TCP reconnect succeeded")
+        LOGGER.warning("Waveshare TCP reconnect succeeded")

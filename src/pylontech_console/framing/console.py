@@ -6,6 +6,7 @@ COMMAND_TERMINATOR = b"\r"
 RESPONSE_START_MARKER = b"@"
 RESPONSE_END_MARKER = b"$$"
 SUCCESS_CONFIRMATION = "Command completed successfully"
+DIAGNOSTIC_LINE_LIMIT = 120
 MAX_EXCHANGE_BYTES = 16_384
 READ_CHUNK_BYTES = 4_096
 
@@ -140,9 +141,15 @@ class FramedConsoleClient:
                 None,
             )
             if final_non_empty_line != SUCCESS_CONFIRMATION:
+                diagnostic_line = (
+                    final_non_empty_line[:DIAGNOSTIC_LINE_LIMIT]
+                    if final_non_empty_line is not None
+                    else "<none>"
+                )
                 raise MissingSuccessConfirmationError(
                     "framed console response ended without the required "
-                    f"success confirmation ({len(payload)} payload characters)",
+                    f"success confirmation ({len(payload)} payload characters; "
+                    f"final line={diagnostic_line!r})",
                 )
             return payload
 

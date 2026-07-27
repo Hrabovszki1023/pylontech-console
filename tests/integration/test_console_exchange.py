@@ -404,7 +404,11 @@ async def test_framed_incomplete_response_reconnects_before_next_command() -> No
 
         with pytest.raises(
             MissingSuccessConfirmationError,
-            match="without the required success confirmation",
+            match=(
+                "without the required success confirmation "
+                r"\(112 payload characters; "
+                "final line='Module 6: current'\\)"
+            ),
         ):
             await client.execute("pwrsys")
 
