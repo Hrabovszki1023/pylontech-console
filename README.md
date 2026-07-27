@@ -1,6 +1,7 @@
 # Pylontech Console
 
-Open documentation and reference implementation for the undocumented Pylontech RS232 debug console.
+Source-available, read-only monitoring for the undocumented Pylontech RS232
+debug console.
 
 ## Goal
 
@@ -67,7 +68,24 @@ Development starts with:
 - Reverse engineering completed.
 - Core protocol documented.
 - Architecture defined.
-- Implementation ready to start.
+- Production service implemented with REST, Web UI and MQTT.
+- Running on a five-module mixed Pylontech US2000/US2000C rack.
+- Published `linux/amd64` Docker images available from Docker Hub.
+
+## Tested hardware
+
+The verified reference installation uses:
+
+- two Pylontech US2000 modules;
+- three Pylontech US2000C modules;
+- 15 cells per module and 75 cells in total;
+- a Waveshare RS232/485/422 TO POE ETH (B) serial device server;
+- Docker on a Proxmox-hosted `linux/amd64` server;
+- optional MQTT publishing to ioBroker.
+
+Other Pylontech models, serial adapters and container architectures are not yet
+verified. See [`docs/hardware.md`](docs/hardware.md) for the exact compatibility
+statement and [`docs/wiring.md`](docs/wiring.md) for the tested cable.
 
 ## Safety
 
@@ -118,3 +136,11 @@ The published container is configured with the same validated
 `PYLONTECH_WAVESHARE_*`, `PYLONTECH_HTTP_*`, `PYLONTECH_WEB_*` and
 `PYLONTECH_MQTT_*` environment variables used by Docker Compose. Images
 currently target `linux/amd64`.
+
+## License
+
+Pylontech Console is source-available software. Private, academic and other
+non-commercial use is permitted under the
+[Pylontech Console Community License](LICENSE). Commercial products, services,
+installations, support, internal business use, forks and derived works require
+a separate commercial license from the rights holder.
