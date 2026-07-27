@@ -5,6 +5,7 @@ from pylontech_console.transport.tcp import AsyncTcpTransport
 COMMAND_TERMINATOR = b"\r"
 RESPONSE_START_MARKER = b"@"
 RESPONSE_END_MARKER = b"$$"
+SUCCESS_CONFIRMATION = "Command completed successfully"
 MAX_EXCHANGE_BYTES = 16_384
 READ_CHUNK_BYTES = 4_096
 
@@ -23,6 +24,10 @@ class ResponseEncodingError(ConsoleProtocolError):
 
 class IncompleteResponseError(ConsoleProtocolError):
     """Raised when the peer closes before a complete response arrives."""
+
+
+class MissingSuccessConfirmationError(IncompleteResponseError):
+    """Raised when a framed response lacks the required success line."""
 
 
 class ResponseTooLargeError(ConsoleProtocolError):
@@ -121,8 +126,28 @@ class FramedConsoleClient:
         """Send one command and return only its framed payload."""
 
         request = encode_command(command)
+
+        async def read_complete_payload(
+            reader: asyncio.StreamReader,
+        ) -> str:
+            payload = await read_framed_ascii_payload(reader)
+            final_non_empty_line = next(
+                (
+                    line.strip()
+                    for line in reversed(payload.splitlines())
+                    if line.strip()
+                ),
+                None,
+            )
+            if final_non_empty_line != SUCCESS_CONFIRMATION:
+                raise MissingSuccessConfirmationError(
+                    "framed console response ended without the required "
+                    f"success confirmation ({len(payload)} payload characters)",
+                )
+            return payload
+
         return await self._transport.exchange(
             request,
-            read_framed_ascii_payload,
+            read_complete_payload,
             self._response_timeout_seconds,
         )
