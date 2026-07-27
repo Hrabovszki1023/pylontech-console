@@ -2,10 +2,14 @@
 
 This directory contains the technical documentation for connecting to and operating the Pylontech debug console.
 
+Available documents:
+
+- `hardware.md` — verified modules, deployment platform and explicit
+  compatibility limits;
+- `wiring.md` — RJ45 console and DB9 pinout;
+
 Planned documents:
 
-- `hardware.md` — supported modules, ports and reference hardware;
-- `wiring.md` — RJ45 console and DB9 pinout;
 - `waveshare.md` — transparent RS232-over-TCP configuration;
 - `console-access.md` — terminal settings and connection test;
 - `architecture.md` — integration with ioBroker, MQTT and Modbus TCP;
