@@ -87,6 +87,18 @@ Other Pylontech models, serial adapters and container architectures are not yet
 verified. See [`docs/hardware.md`](docs/hardware.md) for the exact compatibility
 statement and [`docs/wiring.md`](docs/wiring.md) for the tested cable.
 
+## Cell-voltage heatmap
+
+The Web UI compares every cell with the average of its own module. Blue cells
+are below that reference, red cells are above it, and the neutral zone is
+white. Independent absolute-voltage markers distinguish imbalance from a cell
+approaching a configured safety threshold.
+
+The following screenshot shows live data from the verified five-module mixed
+US2000/US2000C rack in the upper charging range:
+
+![Pylontech Console cell-voltage heatmap showing five real battery modules](docs/images/cell-voltage-heatmap.png)
+
 ## Safety
 
 The console exposes read and write commands. Version 0.1 intentionally implements read-only functionality only.
