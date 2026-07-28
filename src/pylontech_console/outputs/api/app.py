@@ -13,9 +13,11 @@ from pylontech_console.outputs.api.models import (
     PositionModel,
     RackValueModel,
     TopologyEventsModel,
+    VersionModel,
 )
 from pylontech_console.outputs.api.query import Clock, StateQuery, utc_now
 from pylontech_console.polling import CurrentStateStore
+from pylontech_console.version import BuildIdentity, load_build_identity
 
 
 class ApplicationRuntime(Protocol):
@@ -30,9 +32,11 @@ def create_application(
     clock: Clock = utc_now,
     query: StateQuery | None = None,
     runtime: ApplicationRuntime | None = None,
+    identity: BuildIdentity | None = None,
 ) -> FastAPI:
     """Build the read-only API with deterministic injected dependencies."""
     state_query = query or StateQuery(store, clock)
+    build_identity = identity or load_build_identity()
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -45,10 +49,18 @@ def create_application(
                 await runtime.stop()
 
     app = FastAPI(
-        title="Pylontech Console",
-        version="0.1",
+        title=build_identity.display_name,
+        version=build_identity.version,
         lifespan=lifespan,
     )
+
+    @app.get("/api/v1/version", response_model=VersionModel)
+    def version() -> VersionModel:
+        return VersionModel(
+            name=build_identity.name,
+            version=build_identity.version,
+            revision=build_identity.revision,
+        )
 
     @app.get("/api/v1/health", response_model=HealthModel)
     def health() -> HealthModel:

@@ -4,7 +4,8 @@
 
 Accepted for implementation by GitHub issue #19.
 
-This document refines the REST requirements in `version-0.1.md`. If the two
+This document refines the REST requirements in `version-0.1.md`. Build
+identity requirements are refined by GitHub issue #44. If the two
 documents conflict, implementation must stop until the conflict is resolved
 explicitly.
 
@@ -33,6 +34,7 @@ The API must not provide write operations or arbitrary console commands.
 ## Endpoints
 
 ```text
+GET /api/v1/version
 GET /api/v1/health
 GET /api/v1/rack
 GET /api/v1/modules
@@ -44,6 +46,23 @@ GET /api/v1/topology-events
 
 No per-cell endpoint is required in version 0.1. All current cells are returned
 with the module detail.
+
+## Build identity
+
+`GET /api/v1/version` returns HTTP 200 independently of acquisition health:
+
+```json
+{
+  "name": "pylontech-console",
+  "version": "0.1.0-beta.1",
+  "revision": "fc830cd8ff0e2ebcde20094a91709a87ef8b713b"
+}
+```
+
+`version` uses the contractual public spelling. `revision` is the exact full
+Git commit for CI-built artifacts and the explicit value `development` for
+local/editable execution. The endpoint contains no acquisition state,
+timestamp, configuration or credential.
 
 ## Common serialization rules
 

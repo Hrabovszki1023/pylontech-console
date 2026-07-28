@@ -25,7 +25,10 @@
     </header>
     <main>{% block content %}{% endblock %}</main>
     <footer>
-      Read-only monitoring · Values refresh every 5 seconds
+      Read-only monitoring · Values refresh every 5 seconds ·
+      <span data-testid="app-name">{{ app_identity.display_name }}</span>
+      <span data-testid="app-version">{{ app_identity.version }}</span>
+      · <span data-testid="app-revision">{{ app_identity.short_revision }}</span>
     </footer>
   </body>
 </html>

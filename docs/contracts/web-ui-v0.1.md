@@ -5,6 +5,7 @@
 Accepted for implementation by GitHub issue #21. The cell-voltage
 visualization requirements are refined by GitHub issues #27 and #30. MQTT
 status requirements are refined by GitHub issue #33.
+Application build-identity requirements are refined by GitHub issue #44.
 
 This document refines the web-interface requirements in `version-0.1.md`. If
 the two documents conflict, implementation must stop until the conflict is
@@ -40,7 +41,8 @@ console commands.
   the local network must not require a public CDN.
 - Web implementation belongs under
   `src/pylontech_console/outputs/web/`.
-- Existing REST and OpenAPI routes remain unchanged.
+- Existing REST and OpenAPI routes remain unchanged except for the explicitly
+  authorized build-identity endpoint and OpenAPI version from issue #44.
 
 ## Pages
 
@@ -117,6 +119,19 @@ It displays:
 
 An unknown barcode returns HTTP 404. A known module with unavailable, invalid
 or stale measurements remains accessible and shows explicit status metadata.
+
+### Application build identity
+
+The shared page footer on both rack overview and module detail displays:
+
+```text
+Pylontech Console <public-version> · <short-revision>
+```
+
+The public version uses the contractual spelling. A CI-built revision is the
+first seven characters of its full Git SHA; local/editable execution displays
+`development`. The build identity is read-only and is not part of an HTMX
+current-state fragment.
 
 ## Cell-voltage heatmap
 
@@ -374,6 +389,9 @@ detail IDs exist exactly when the corresponding sanitized value exists.
 Static rack IDs are:
 
 ```text
+app-name
+app-version
+app-revision
 rack-page
 rack-current-state
 rack-health
@@ -598,5 +616,5 @@ and narrow viewport sizes.
 - write operations;
 - arbitrary console commands;
 - independent polling, parsing or discovery;
-- REST response-contract changes other than the MQTT health extension
-  explicitly defined in `mqtt-v0.1.md`.
+- REST response-contract changes other than the MQTT health extension and
+  build-identity endpoint explicitly defined by issue #44.

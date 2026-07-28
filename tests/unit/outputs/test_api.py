@@ -38,6 +38,7 @@ from pylontech_console.mqtt_health import (
 )
 from pylontech_console.outputs.api.query import StateQuery
 from pylontech_console.polling import CurrentStateStore
+from pylontech_console.version import BuildIdentity, PUBLIC_VERSION
 
 T0 = datetime(2026, 7, 19, 14, 30, tzinfo=timezone.utc)
 NOW = T0 + timedelta(seconds=10)
@@ -270,3 +271,30 @@ def test_unauthenticated_console_makes_battery_health_offline() -> None:
         "last_authenticated_at": None,
         "error": "console authentication failed",
     }
+
+
+def test_version_endpoint_and_openapi_use_public_build_identity() -> None:
+    api = client()
+
+    assert api.get("/api/v1/version").json() == {
+        "name": "pylontech-console",
+        "version": PUBLIC_VERSION,
+        "revision": "development",
+    }
+    assert api.get("/openapi.json").json()["info"]["version"] == PUBLIC_VERSION
+
+    state = CurrentState.empty(5, 60, 300, 2)
+    built_api = TestClient(
+        create_application(
+            CurrentStateStore(state),
+            identity=BuildIdentity(
+                name="pylontech-console",
+                display_name="Pylontech Console",
+                version=PUBLIC_VERSION,
+                revision="fc830cd8ff0e2ebcde20094a91709a87ef8b713b",
+            ),
+        ),
+    )
+    assert built_api.get("/api/v1/version").json()["revision"] == (
+        "fc830cd8ff0e2ebcde20094a91709a87ef8b713b"
+    )

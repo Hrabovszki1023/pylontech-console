@@ -14,6 +14,7 @@ from pylontech_console.console_session import (
 from pylontech_console.outputs.web.query import _cell_color
 from pylontech_console.outputs.web.routes import encode_test_id_component
 from tests.web_fixture import RECEIVED_TIME, create_web_test_app
+from pylontech_console.version import BuildIdentity
 
 
 def _test_ids(html: str) -> list[str]:
@@ -62,9 +63,15 @@ def test_gui_test_id_registry_is_unique_and_shared_with_fragments() -> None:
         assert all(re.fullmatch(r"[A-Za-z0-9._%-]+", value) for value in ids)
 
     assert set(_test_ids(rack_page)) == set(_test_ids(rack_fragment)) | {
+        "app-name",
+        "app-version",
+        "app-revision",
         "rack-page",
     }
     assert set(_test_ids(module_page)) == set(_test_ids(module_fragment)) | {
+        "app-name",
+        "app-version",
+        "app-revision",
         "module-MODULE-A-page",
     }
     assert {
@@ -363,3 +370,23 @@ def test_console_session_status_is_read_only_and_sanitized() -> None:
     assert "console authentication failed" in response.text
     assert "login " not in response.text
     assert client.post("/console-session").status_code == 404
+
+
+def test_build_identity_footer_is_shared_by_rack_and_module_pages() -> None:
+    client = TestClient(
+        create_web_test_app(
+            build_identity=BuildIdentity(
+                name="pylontech-console",
+                display_name="Pylontech Console",
+                version="0.1.0-beta.1",
+                revision="fc830cd8ff0e2ebcde20094a91709a87ef8b713b",
+            ),
+        ),
+    )
+
+    for path in ("/", "/modules/MODULE-A"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert 'data-testid="app-name">Pylontech Console</span>' in response.text
+        assert 'data-testid="app-version">0.1.0-beta.1</span>' in response.text
+        assert 'data-testid="app-revision">fc830cd</span>' in response.text

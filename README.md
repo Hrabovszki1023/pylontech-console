@@ -184,6 +184,17 @@ Every `main` image also has a commit-specific `sha-*` tag. Version tags such
 as `v0.1.0-beta.1` publish `0.1.0-beta.1`; prereleases do not move `latest`.
 The `latest` tag is reserved for stable semantic-version releases.
 
+The application exposes its exact build identity at:
+
+```text
+GET /api/v1/version
+```
+
+REST, Web, OpenAPI and OCI labels report the same public product version.
+CI-built containers also report their exact source commit. A versioned image
+is published only when a deliberately created Git tag such as
+`v0.1.0-beta.1` matches the public version declared by the application.
+
 The published container is configured with the same validated
 `PYLONTECH_WAVESHARE_*`, `PYLONTECH_CONSOLE_*`, `PYLONTECH_HTTP_*`,
 `PYLONTECH_WEB_*` and

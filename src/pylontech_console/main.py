@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from dataclasses import replace
 
 import uvicorn
@@ -26,6 +27,9 @@ from pylontech_console.outputs.mqtt import MqttPublisher, SnapshotSerializer
 from pylontech_console.outputs.web import mount_web
 from pylontech_console.polling import PollingService, utc_now
 from pylontech_console.transport.tcp import AsyncTcpTransport
+from pylontech_console.version import BuildIdentity, load_build_identity
+
+LOGGER = logging.getLogger(__name__)
 
 
 class ServiceRuntime:
@@ -35,14 +39,22 @@ class ServiceRuntime:
         console: AuthenticatedConsoleClient,
         polling: PollingService,
         mqtt: MqttPublisher,
+        identity: BuildIdentity,
     ) -> None:
         self._transport = transport
         self._console = console
         self._polling = polling
         self._mqtt = mqtt
+        self._identity = identity
         self._unsubscribe = polling.store.subscribe(mqtt.notify_state)
 
     async def start(self) -> None:
+        LOGGER.info(
+            "starting %s version=%s revision=%s",
+            self._identity.name,
+            self._identity.version,
+            self._identity.revision,
+        )
         await self._mqtt.start()
         try:
             await self._transport.connect()
@@ -68,6 +80,7 @@ class ServiceRuntime:
 
 
 def build_production_application() -> tuple[FastAPI, str, int]:
+    identity = load_build_identity()
     waveshare = load_waveshare_settings()
     console_settings = load_console_settings()
     polling_settings = load_polling_settings()
@@ -114,13 +127,14 @@ def build_production_application() -> tuple[FastAPI, str, int]:
         mqtt_health,
         polling_settings.rack_interval_seconds,
     )
-    runtime = ServiceRuntime(transport, console, polling, mqtt)
+    runtime = ServiceRuntime(transport, console, polling, mqtt, identity)
     app = create_application(
         polling.store,
         query=query,
         runtime=runtime,
+        identity=identity,
     )
-    mount_web(app, query, web)
+    mount_web(app, query, web, identity)
     return app, http.host, http.port
 
 

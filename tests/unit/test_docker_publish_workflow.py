@@ -46,6 +46,20 @@ def test_docker_publish_workflow_reserves_latest_for_stable_tags() -> None:
     assert "needs: verify" in text
 
 
+def test_workflow_injects_and_labels_exact_build_identity() -> None:
+    text = workflow_text()
+
+    assert "validate_release_tag" in text
+    assert "PYLONTECH_BUILD_VERSION=${{ needs.verify.outputs.public-version }}" in text
+    assert "PYLONTECH_BUILD_REVISION=${{ github.sha }}" in text
+    assert (
+        "org.opencontainers.image.version="
+        "${{ needs.verify.outputs.public-version }}"
+    ) in text
+    assert "org.opencontainers.image.revision=${{ github.sha }}" in text
+    assert "org.opencontainers.image.source=${{ github.server_url }}" in text
+
+
 def test_actions_are_pinned_to_commit_shas() -> None:
     for line in workflow_text().splitlines():
         stripped = line.strip()
