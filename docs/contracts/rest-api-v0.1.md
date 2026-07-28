@@ -139,6 +139,22 @@ The health response contains:
   `last_disconnected_at`, `consecutive_failures` and sanitized `error`;
 - sanitized current `errors`.
 
+It also contains a non-secret `console_session` object:
+
+```json
+{
+  "mode": "debug",
+  "authenticated": true,
+  "last_authenticated_at": "2026-07-27T23:25:54Z",
+  "error": null
+}
+```
+
+`mode` is `user`, `debug` or `unknown`. `authenticated` is true only after the
+console exchange has returned a successful framed login or capability probe
+and the exact `pylon_debug>` prompt. The error is sanitized. The login
+password, raw login command and raw console payload are never serialized.
+
 The MQTT health object and its effect on the combined service status are
 defined in `mqtt-v0.1.md`. Disabled MQTT does not affect service status.
 Enabled MQTT with `connected=false`, whether connecting or disconnected,
@@ -289,11 +305,12 @@ long-running version 0.1 service. The application lifecycle must:
 
 1. create the TCP transport and console client;
 2. connect to Waveshare;
-3. mark the service as discovering and initialize inventory;
-4. start cyclic polling;
-5. serve REST through FastAPI/Uvicorn;
-6. gracefully stop polling tasks;
-7. disconnect TCP during shutdown.
+3. determine console mode and establish the authenticated debug session;
+4. mark the service as discovering and initialize inventory;
+5. start cyclic polling only after authentication is verified;
+6. serve REST through FastAPI/Uvicorn;
+7. best-effort logout from a verified debug session;
+8. gracefully stop polling tasks and disconnect TCP during shutdown.
 
 Startup failures must remain visible through health state and logs and must not
 create a second polling path.
@@ -315,6 +332,8 @@ Tests use controlled current-state objects and a fixed clock. They must verify:
 - every endpoint and response model;
 - shared-snapshot age and inclusive stale-boundary behavior;
 - health states and aggregate counts;
+- console-session health for user, debug and unknown modes without secret or
+  raw-command exposure;
 - rack overview and derived values;
 - position mapping and lookup;
 - module lookup by barcode;
@@ -326,6 +345,7 @@ Tests use controlled current-state objects and a fixed clock. They must verify:
 - immutable mapping and tuple serialization;
 - absence of write and arbitrary-command routes;
 - API and web query/view models do not execute console commands or polling;
+- polling does not start or resume before debug authentication succeeds;
 - application startup and graceful shutdown;
 - Docker bind address and port configuration.
 

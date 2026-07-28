@@ -62,6 +62,18 @@ pwr <position>
 bat <position>
 ```
 
+`pwrsys` is available only in the authenticated `pylon_debug>` console mode
+on the observed firmware. The session lifecycle may additionally issue only:
+
+```text
+login <configured-password>
+logout
+```
+
+These two commands are narrowly authorized for entering and leaving the
+required read-only polling mode. They are not polling commands and do not
+authorize any other debug/admin command.
+
 Additional documented read-only commands may be used only after they are explicitly added to this contract.
 
 The implementation shall not expose a generic production API such as:
@@ -153,12 +165,17 @@ Discovery and cyclic process-data polling shall be separate concerns.
 At service startup:
 
 1. establish the TCP connection,
-2. execute `pwr`,
-3. determine all present positions,
-4. execute `info <position>` for every present position,
-5. build the position-to-barcode mapping,
-6. compare the discovered topology with persisted inventory data,
-7. emit topology events where applicable.
+2. determine the console mode and establish an authenticated debug session as
+   defined by the transport contract,
+3. execute `pwr`,
+4. determine all present positions,
+5. execute `info <position>` for every present position,
+6. build the position-to-barcode mapping,
+7. compare the discovered topology with persisted inventory data,
+8. emit topology events where applicable.
+
+Discovery and cyclic polling must not begin until the console session has been
+verified as authenticated.
 
 ### Cyclic acquisition
 
@@ -228,10 +245,21 @@ Command completed successfully
 $$
 ```
 
+The response prompt follows the framed response and is part of the command
+exchange, but not part of the payload:
+
+```text
+pylon>
+pylon_debug>
+```
+
+The transport shall expose the prompt separately and classify the session mode
+as `user`, `debug` or `unknown`. Exact prompt matching is required.
+
 Transport handling shall:
 
 - ignore command echo before `@`,
-- ignore prompt text such as `pylon_debug>` outside a framed response,
+- collect the prompt after `$$` separately from the framed payload,
 - start payload collection after `@`,
 - stop payload collection before `$$`,
 - omit the markers and their adjacent line endings from the returned payload,
@@ -244,6 +272,50 @@ Transport handling shall:
 - reject partial responses as valid current data,
 - serialize all console access,
 - reconnect automatically after network or gateway failure.
+
+A syntactically complete framed response that rejects a command, including
+`Unknown command`, is a command/session failure. It is not by itself evidence
+of network or transport corruption and shall not cause a reconnect loop.
+
+### Authenticated console session
+
+The service requires an authenticated debug session because `pwrsys` is a
+mandatory Version 0.1 polling command.
+
+After each initial connection and reconnect, the service shall determine the
+current mode before sending `login`:
+
+1. issue the already allowlisted `pwrsys` as a one-time capability probe;
+2. a successful response followed by exact prompt `pylon_debug>` proves that
+   the session is already authenticated;
+3. the exact user-mode rejection
+   `Unknown command 'pwrsys' - try 'help'` followed by exact prompt `pylon>`
+   proves user mode, after which the service sends
+   `login <configured-password>`;
+4. any other response or prompt leaves the mode `unknown` and fails closed.
+
+Successful authentication requires both
+`Command completed successfully` in the framed response and the exact
+`pylon_debug>` prompt. Polling remains stopped until both are observed.
+
+`login` is not idempotent. The observed response when it is sent while already
+in debug mode contains `Quit current mode`, reports failure and still ends at
+`pylon_debug>`. The service shall therefore never use repeated login as a mode
+probe.
+
+Every TCP reconnect creates a new unverified application session. The service
+shall repeat mode determination and authentication before resuming polling,
+even if the gateway or serial device may have retained a previous console
+mode.
+
+On controlled shutdown, the service shall best-effort send `logout` only when
+the last verified prompt is `pylon_debug>`. A successful logout requires
+`Command completed successfully` and exact prompt `pylon>`. Logout failure
+shall be sanitized and logged but shall not block process termination.
+
+The login password shall never appear in logs, errors, captures, REST, web,
+MQTT or health output. Raw diagnostic retention must redact the full login
+command before storage or logging.
 
 `<INTERRUPT>` is not part of the Pylontech protocol. It was produced by PuTTY when Ctrl+C was used during manual capture. It shall be removed from stored captures and ignored defensively if encountered in terminal input.
 
@@ -259,6 +331,7 @@ waveshare:
   port: 4196
   connect_timeout_seconds: 5
   response_timeout_seconds: 5
+  login_password_file: /run/secrets/pylontech_console_password
 
 polling:
   rack_interval_seconds: 5
@@ -274,6 +347,21 @@ mqtt:
 ```
 
 Configuration values shall be validated on startup.
+
+The console login password is mandatory. It shall be supplied by exactly one
+of:
+
+```text
+PYLONTECH_CONSOLE_LOGIN_PASSWORD
+PYLONTECH_CONSOLE_LOGIN_PASSWORD_FILE
+```
+
+The file setting is preferred for Docker deployment. Environment variables
+remain visible through container inspection and are not a secret store. The
+two settings are mutually exclusive. The configured value must be non-empty
+strict ASCII and must not contain carriage return, line feed or NUL. One final
+line ending read from a password file is removed. Missing, unreadable, empty or
+invalid credentials fail startup without echoing the value.
 
 `stale_after_multiplier` shall be configurable, finite and greater than or
 equal to `1`. Its default value is `2`. Each data group becomes stale when:
@@ -470,6 +558,7 @@ offline
 Health information shall include:
 
 - Waveshare connectivity,
+- non-secret console session mode and authenticated state,
 - last successful response time,
 - current polling delay,
 - consecutive communication failures,
@@ -486,6 +575,17 @@ The service shall automatically recover from:
 - timeout,
 - malformed or incomplete response,
 - MQTT broker interruption.
+
+Console session health shall expose only:
+
+```text
+mode: user | debug | unknown
+authenticated: true | false
+last_authenticated_at
+sanitized_error
+```
+
+It shall never expose the configured password or the raw login command.
 
 A malformed response shall not overwrite the last known valid value as though it were current.
 
@@ -536,9 +636,21 @@ The deployment shall provide:
 - structured application logs,
 - configurable log level.
 
+The Waveshare raw TCP console is unencrypted and shall be deployed on a
+dedicated isolated technical network or VLAN. Firewall policy shall permit
+TCP port 4196 only from the Docker host running this service. Console
+authentication is a firmware mode transition, not a network security
+boundary. A direct USB/serial transport for a locally attached Raspberry Pi or
+Docker host is deferred to a separate future issue.
+
 ## Testing contract
 
 The stored console captures shall serve as parser fixtures.
+
+Sanitized fixtures shall cover user-mode `pwrsys` rejection, successful login,
+successful debug-mode `pwrsys`, repeated login while already in debug mode and
+successful logout. Login fixtures use a placeholder such as `<redacted>` and
+must never contain the configured credential.
 
 Automated tests shall cover at minimum:
 
@@ -553,6 +665,14 @@ Automated tests shall cover at minimum:
 - unknown additional fields,
 - incomplete response framing,
 - timeout and reconnect behavior,
+- prompt parsing and `user`, `debug` and `unknown` mode classification,
+- already-authenticated startup without repeated login,
+- user-mode capability rejection followed by successful authentication,
+- failed authentication and unexpected prompt fail closed,
+- authentication repeated after every reconnect before polling resumes,
+- best-effort logout with verified `pylon>` prompt,
+- credential redaction from logs, captures and all output adapters,
+- valid command rejection without a transport reconnect loop,
 - stale-value handling,
 - MQTT topic generation by barcode,
 - REST and web data consistency with the internal model.

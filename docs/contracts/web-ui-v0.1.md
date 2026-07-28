@@ -85,6 +85,21 @@ credential fields, connect/disconnect action or any other MQTT write
 operation. MQTT is configured exclusively through validated deployment
 configuration.
 
+### Console session status
+
+The rack overview displays the read-only console session state from the shared
+health query:
+
+- mode: `USER`, `DEBUG` or `UNKNOWN`;
+- authenticated/not authenticated;
+- last successful authentication time, when available;
+- sanitized session error, when available.
+
+The status must be understandable without color. The UI never renders the
+login password, raw login command, credential source or a login/logout
+control. Authentication is deployment configuration and application
+lifecycle, not a web operation.
+
 ### Module detail
 
 `GET /modules/{barcode}` uses the stable barcode in navigation and URLs.
@@ -370,6 +385,10 @@ mqtt-last-connected-at
 mqtt-last-disconnected-at
 mqtt-consecutive-failures
 mqtt-error
+console-session-mode
+console-session-authenticated
+console-session-last-authenticated-at
+console-session-error
 rack-age
 rack-snapshot-at
 rack-soc
@@ -487,6 +506,8 @@ must verify:
 
 - rack overview rendering and required values;
 - all four MQTT badge states and optional MQTT status details;
+- console session modes, authenticated state and optional sanitized details;
+- console credentials and raw login commands are absent from rendered output;
 - every discovered module appears in position order;
 - module links and lookup use stable barcodes;
 - unknown-module HTTP 404 behavior;
@@ -520,6 +541,8 @@ must verify:
 - web requests execute no console commands and start no polling;
 - no write or arbitrary-command routes are introduced;
 - no MQTT configuration or control operation is introduced;
+- no console login, logout, credential or arbitrary-command control is
+  introduced;
 - existing REST behavior and tests remain unchanged except for the MQTT
   health extension explicitly defined in `mqtt-v0.1.md`;
 - initial load, unchanged values and first appearances do not trigger the
@@ -569,6 +592,7 @@ and narrow viewport sizes.
 - Grafana dashboards and alert rules;
 - a temperature heatmap as a required deliverable;
 - authentication and authorization;
+- console-session configuration or control through the web interface;
 - configuration editing;
 - per-cell pages;
 - write operations;
