@@ -10,6 +10,11 @@ from pylontech_console.domain.current_state import (
 )
 from pylontech_console.domain.discovery import ModuleRecord
 from pylontech_console.domain.info import ModuleIdentity
+from pylontech_console.console_session import (
+    ConsoleSessionHealth,
+    ConsoleSessionHealthStore,
+    ConsoleSessionMode,
+)
 from pylontech_console.mqtt_health import MqttHealth, MqttHealthStore
 from pylontech_console.outputs.api.models import (
     CellCountModel,
@@ -17,6 +22,7 @@ from pylontech_console.outputs.api.models import (
     CompactCellsDerivedModel,
     CompactCellsModel,
     CompactDetailModel,
+    ConsoleSessionHealthModel,
     CountModel,
     CurrentValueModel,
     DetailValueModel,
@@ -56,10 +62,17 @@ class StateQuery:
         store: CurrentStateStore,
         clock: Clock = utc_now,
         mqtt_health: MqttHealthStore | None = None,
+        console_health: ConsoleSessionHealthStore | None = None,
     ) -> None:
         self._store = store
         self._clock = clock
         self._mqtt_health = mqtt_health or MqttHealthStore()
+        self._console_health = console_health or ConsoleSessionHealthStore(
+            ConsoleSessionHealth(
+                mode=ConsoleSessionMode.DEBUG,
+                authenticated=True,
+            ),
+        )
 
     def snapshot(self) -> tuple[CurrentState, datetime]:
         return self._store.get(), self._clock().astimezone(UTC)
@@ -186,6 +199,7 @@ class StateQuery:
         details = [module.detail for module in state.modules.values()]
         cells = [module.cells for module in state.modules.values()]
         mqtt = self._mqtt_health.get()
+        console_session = self._console_health.get()
         status = state.connection.value
         if (
             state.connection.value == "online"
@@ -193,6 +207,11 @@ class StateQuery:
             and not mqtt.connected
         ):
             status = "degraded"
+        if (
+            state.connection.value in ("online", "discovering")
+            and not console_session.authenticated
+        ):
+            status = "offline"
         return HealthModel(
             generated_at=now,
             status=status,
@@ -218,6 +237,7 @@ class StateQuery:
                 stale_groups=sum(value.is_stale(now) for value in cells),
             ),
             mqtt=self.mqtt_model(mqtt),
+            console_session=self.console_session_model(console_session),
             errors=[self.error(error) for error in state.errors],  # type: ignore[misc]
         )
 
@@ -230,6 +250,17 @@ class StateQuery:
             last_connected_at=value.last_connected_at,
             last_disconnected_at=value.last_disconnected_at,
             consecutive_failures=value.consecutive_failures,
+            error=value.error,
+        )
+
+    @staticmethod
+    def console_session_model(
+        value: ConsoleSessionHealth,
+    ) -> ConsoleSessionHealthModel:
+        return ConsoleSessionHealthModel(
+            mode=value.mode.value,
+            authenticated=value.authenticated,
+            last_authenticated_at=value.last_authenticated_at,
             error=value.error,
         )
 

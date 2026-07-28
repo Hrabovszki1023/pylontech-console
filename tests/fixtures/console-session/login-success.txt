@@ -1,0 +1,5 @@
+login <redacted>
+@
+Command completed successfully
+$$
+pylon_debug>

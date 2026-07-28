@@ -4,12 +4,14 @@ import pytest
 from pydantic import ValidationError
 
 from pylontech_console.config import (
+    ConsoleSettings,
     HttpSettings,
     MqttSettings,
     PollingSettings,
     WebSettings,
     WaveshareSettings,
     load_polling_settings,
+    load_console_settings,
     load_mqtt_settings,
     load_waveshare_settings,
     load_web_settings,
@@ -21,12 +23,73 @@ ENVIRONMENT_VARIABLES = (
     "PYLONTECH_WAVESHARE_CONNECT_TIMEOUT_SECONDS",
     "PYLONTECH_WAVESHARE_RESPONSE_TIMEOUT_SECONDS",
 )
+CONSOLE_ENVIRONMENT_VARIABLES = (
+    "PYLONTECH_CONSOLE_LOGIN_PASSWORD",
+    "PYLONTECH_CONSOLE_LOGIN_PASSWORD_FILE",
+)
 PROJECT_ROOT = Path(__file__).parents[2]
 
 
 def clear_waveshare_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ENVIRONMENT_VARIABLES:
         monkeypatch.delenv(name, raising=False)
+
+
+def clear_console_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in CONSOLE_ENVIRONMENT_VARIABLES:
+        monkeypatch.delenv(name, raising=False)
+
+
+def test_console_password_loads_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_console_environment(monkeypatch)
+    monkeypatch.setenv("PYLONTECH_CONSOLE_LOGIN_PASSWORD", "secret")
+
+    settings = load_console_settings()
+
+    assert settings.password() == "secret"
+    assert "secret" not in repr(settings)
+
+
+def test_console_password_loads_from_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    clear_console_environment(monkeypatch)
+    password_file = tmp_path / "console-password"
+    password_file.write_bytes(b"secret\r\n")
+    monkeypatch.setenv(
+        "PYLONTECH_CONSOLE_LOGIN_PASSWORD_FILE",
+        str(password_file),
+    )
+
+    assert load_console_settings().password() == "secret"
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {},
+        {"login_password": "secret", "login_password_file": "secret.txt"},
+        {"login_password": ""},
+        {"login_password": "line\nbreak"},
+        {"login_password": "nul\x00byte"},
+        {"login_password": "pässword"},
+    ],
+)
+def test_console_rejects_invalid_configuration(
+    values: dict[str, object],
+) -> None:
+    with pytest.raises((ValidationError, ValueError)):
+        ConsoleSettings.model_validate(values)
+
+
+def test_compose_passes_console_secret_sources() -> None:
+    compose = (PROJECT_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "PYLONTECH_CONSOLE_LOGIN_PASSWORD:" in compose
+    assert "PYLONTECH_CONSOLE_LOGIN_PASSWORD_FILE:" in compose
 
 
 def test_loads_values_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:

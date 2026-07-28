@@ -23,6 +23,24 @@
         {{ page.health.mqtt.state | upper }}
       {% endif %}
     </span>
+    <span
+      class="mqtt-status mqtt-status-{{ 'connected' if page.health.console_session.authenticated else 'disconnected' }}"
+      data-testid="console-session-authenticated"
+    >
+      CONSOLE {{ "AUTHENTICATED" if page.health.console_session.authenticated else "NOT AUTHENTICATED" }}
+    </span>
+    <small data-testid="console-session-mode">Console mode {{ page.health.console_session.mode | upper }}</small>
+    {% if page.health.console_session.last_authenticated_at %}
+      <small data-testid="console-session-last-authenticated-at">
+        Console authenticated
+        {{ page.health.console_session.last_authenticated_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+      </small>
+    {% endif %}
+    {% if page.health.console_session.error %}
+      <small class="mqtt-error" data-testid="console-session-error">
+        Console error · {{ page.health.console_session.error }}
+      </small>
+    {% endif %}
     {% if page.health.mqtt.last_connected_at %}
       <small data-testid="mqtt-last-connected-at">
         MQTT connected

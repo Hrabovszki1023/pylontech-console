@@ -9,6 +9,7 @@ from pylontech_console.framing.console import (
     ResponseEncodingError,
     ResponseTooLargeError,
     encode_command,
+    read_console_exchange,
     read_framed_ascii_payload,
 )
 
@@ -100,3 +101,61 @@ async def test_rejects_exchange_above_size_limit() -> None:
 
     with pytest.raises(ResponseTooLargeError):
         await read_framed_ascii_payload(reader)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("prompt", "expected_mode"),
+    [
+        (b"pylon>", "user"),
+        (b"pylon_debug>", "debug"),
+    ],
+)
+async def test_parses_prompt_separately_from_framed_payload(
+    prompt: bytes,
+    expected_mode: str,
+) -> None:
+    reader = reader_with(
+        b"echo\r\n@\r\nCommand completed successfully\r\n$$\r\n" + prompt,
+    )
+
+    result = await read_console_exchange(reader)
+
+    assert result.payload == "Command completed successfully"
+    assert result.prompt == prompt.decode("ascii")
+    assert result.mode.value == expected_mode
+    assert result.succeeded
+
+
+@pytest.mark.asyncio
+async def test_valid_command_rejection_is_a_complete_user_exchange() -> None:
+    reader = reader_with(
+        b"@\r\nUnknown command 'pwrsys' - try 'help'\r\n$$\r\npylon>",
+    )
+
+    result = await read_console_exchange(reader)
+
+    assert result.mode.value == "user"
+    assert not result.succeeded
+    assert "Unknown command" in result.payload
+
+
+@pytest.mark.asyncio
+async def test_at_sign_in_command_echo_is_not_the_response_marker() -> None:
+    reader = reader_with(
+        b"login p@ssword\r\n@\r\nCommand completed successfully\r\n"
+        b"$$pylon_debug>",
+    )
+
+    result = await read_console_exchange(reader)
+
+    assert result.succeeded
+    assert result.mode.value == "debug"
+
+
+@pytest.mark.asyncio
+async def test_rejects_eof_before_following_prompt() -> None:
+    reader = reader_with(b"@\r\nCommand completed successfully\r\n$$")
+
+    with pytest.raises(IncompleteResponseError):
+        await read_console_exchange(reader)
