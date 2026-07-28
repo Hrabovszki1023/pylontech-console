@@ -115,12 +115,12 @@ async def test_serializes_concurrent_exchanges() -> None:
             second_command_before_first_response = True
         except TimeoutError:
             pass
-        writer.write(b"@\nfirst response\n$$")
+        writer.write(b"@\nfirst response\n$$pylon_debug>")
         await writer.drain()
         first_response_sent.set()
         second = await reader.readuntil(b"\r")
         assert second == b"second\r"
-        writer.write(b"@\nsecond response\n$$")
+        writer.write(b"@\nsecond response\n$$pylon_debug>")
         await writer.drain()
 
     server, port = await start_server(handle)
@@ -169,7 +169,7 @@ async def test_protocol_failure_disconnects_transport(
         writer: asyncio.StreamWriter,
     ) -> None:
         await reader.readuntil(b"\r")
-        writer.write(response)
+        writer.write(response + b"pylon_debug>")
         await writer.drain()
         if expected_error is IncompleteResponseError:
             writer.close()

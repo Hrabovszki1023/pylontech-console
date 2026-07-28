@@ -7,6 +7,10 @@ from pylontech_console.mqtt_health import (
     MqttConnectionState,
     MqttHealth,
 )
+from pylontech_console.console_session import (
+    ConsoleSessionHealth,
+    ConsoleSessionMode,
+)
 from pylontech_console.outputs.web.query import _cell_color
 from pylontech_console.outputs.web.routes import encode_test_id_component
 from tests.web_fixture import RECEIVED_TIME, create_web_test_app
@@ -337,3 +341,25 @@ def test_mqtt_status_badges_are_read_only(
     assert 'type="password"' not in response.text
     assert "MQTT enable" not in response.text
     assert client.post("/mqtt").status_code == 404
+
+
+def test_console_session_status_is_read_only_and_sanitized() -> None:
+    app = create_web_test_app(
+        console_health=ConsoleSessionHealth(
+            mode=ConsoleSessionMode.USER,
+            authenticated=False,
+            error="console authentication failed",
+        ),
+    )
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'data-testid="console-session-mode"' in response.text
+    assert "Console mode USER" in response.text
+    assert 'data-testid="console-session-authenticated"' in response.text
+    assert "CONSOLE NOT AUTHENTICATED" in response.text
+    assert "console authentication failed" in response.text
+    assert "login " not in response.text
+    assert client.post("/console-session").status_code == 404

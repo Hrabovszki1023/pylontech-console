@@ -5,6 +5,10 @@ from types import MappingProxyType
 from fastapi import FastAPI
 
 from pylontech_console.config import WebSettings
+from pylontech_console.console_session import (
+    ConsoleSessionHealth,
+    ConsoleSessionHealthStore,
+)
 from pylontech_console.domain.current_state import (
     ConnectionState,
     CurrentModule,
@@ -111,6 +115,7 @@ def create_web_test_app(
     first_voltage_statuses: tuple[str, ...] | None = None,
     web_settings: WebSettings | None = None,
     mqtt_health: MqttHealth | None = None,
+    console_health: ConsoleSessionHealth | None = None,
 ) -> FastAPI:
     barcodes = (unsafe_barcode or "MODULE-A", "MODULE-B")
     records = {
@@ -175,6 +180,11 @@ def create_web_test_app(
         store,
         clock=lambda: SNAPSHOT_TIME,
         mqtt_health=MqttHealthStore(mqtt_health),
+        console_health=(
+            None
+            if console_health is None
+            else ConsoleSessionHealthStore(console_health)
+        ),
     )
     app = create_application(store, query=query)
     app.state.current_state_store = store

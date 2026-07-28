@@ -1,0 +1,8 @@
+login <redacted>
+@
+Quit current mode
+Invalid command or fail to excute.
+Usage:
+Login Admin mode - login [password]
+$$
+pylon_debug>

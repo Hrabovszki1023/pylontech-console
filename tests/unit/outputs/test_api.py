@@ -12,6 +12,11 @@ from pylontech_console.domain.current_state import (
     CurrentValue,
     readonly_modules,
 )
+from pylontech_console.console_session import (
+    ConsoleSessionHealth,
+    ConsoleSessionHealthStore,
+    ConsoleSessionMode,
+)
 from pylontech_console.domain.discovery import (
     InventoryState,
     ModuleRecord,
@@ -156,6 +161,12 @@ def test_all_read_endpoints_and_serialization() -> None:
         "consecutive_failures": 0,
         "error": None,
     }
+    assert health.json()["console_session"] == {
+        "mode": "debug",
+        "authenticated": True,
+        "last_authenticated_at": None,
+        "error": None,
+    }
 
 
 def test_unknown_and_validation_behavior_and_no_write_routes() -> None:
@@ -227,3 +238,35 @@ def test_enabled_unconnected_mqtt_degrades_otherwise_online_health() -> None:
 
     assert response["status"] == "degraded"
     assert response["mqtt"]["state"] == "connecting"
+
+
+def test_unauthenticated_console_makes_battery_health_offline() -> None:
+    state = replace(
+        CurrentState.empty(5, 60, 300, 2),
+        connection=ConnectionState.ONLINE,
+    )
+    store = CurrentStateStore(state)
+    console_health = ConsoleSessionHealthStore(
+        ConsoleSessionHealth(
+            mode=ConsoleSessionMode.USER,
+            authenticated=False,
+            error="console authentication failed",
+        ),
+    )
+    query = StateQuery(
+        store,
+        clock=lambda: NOW,
+        console_health=console_health,
+    )
+
+    response = TestClient(create_application(store, query=query)).get(
+        "/api/v1/health",
+    ).json()
+
+    assert response["status"] == "offline"
+    assert response["console_session"] == {
+        "mode": "user",
+        "authenticated": False,
+        "last_authenticated_at": None,
+        "error": "console authentication failed",
+    }
