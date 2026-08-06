@@ -78,7 +78,10 @@ async def test_consecutive_exchanges_ignore_previous_prompt() -> None:
         for response in (b"one", b"two"):
             commands.append(await reader.readuntil(b"\r"))
             writer.write(
-                commands[-1] + b"\n@\n" + response + b"\n$$pylon_debug>",
+                commands[-1]
+                + b"\n@\n"
+                + response
+                + b"\nCommand completed successfully\n$$pylon_debug>",
             )
             await writer.drain()
 
@@ -89,8 +92,14 @@ async def test_consecutive_exchanges_ignore_previous_prompt() -> None:
     try:
         await transport.connect()
 
-        assert await client.execute("pwr") == "one"
-        assert await client.execute("info 1") == "two"
+        assert (
+            await client.execute("pwr")
+            == "one\nCommand completed successfully"
+        )
+        assert (
+            await client.execute("info 1")
+            == "two\nCommand completed successfully"
+        )
         assert commands == [b"pwr\r", b"info 1\r"]
     finally:
         await transport.disconnect()
@@ -246,6 +255,156 @@ async def test_peer_abort_before_end_marker_disconnects_transport() -> None:
 
         await peer_aborted.wait()
         assert not transport.is_connected
+    finally:
+        await transport.disconnect()
+        server.close()
+        await server.wait_closed()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["timeout", "eof", "reset"])
+async def test_next_exchange_reconnects_after_transport_failure(
+    failure: str,
+) -> None:
+    connections = 0
+    commands: list[bytes] = []
+    reconnect_delays: list[float] = []
+    first_handler_finished = asyncio.Event()
+
+    async def fast_sleep(seconds: float) -> None:
+        reconnect_delays.append(seconds)
+
+    async def handle(
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+    ) -> None:
+        nonlocal connections
+        connections += 1
+        connection = connections
+        command = await reader.readuntil(b"\r")
+        commands.append(command)
+        if connection == 1:
+            if failure == "timeout":
+                await reader.read()
+            elif failure == "eof":
+                writer.close()
+                await writer.wait_closed()
+            else:
+                writer.transport.abort()
+            first_handler_finished.set()
+            return
+
+        writer.write(
+            b"@\nrecovered\nCommand completed successfully\n$$pylon_debug>",
+        )
+        await writer.drain()
+
+    server, port = await start_server(handle)
+    transport = AsyncTcpTransport(
+        "127.0.0.1",
+        port,
+        1,
+        reconnect_min_seconds=1,
+        reconnect_max_seconds=2,
+        sleep=fast_sleep,
+    )
+    client = FramedConsoleClient(
+        transport,
+        0.01 if failure == "timeout" else 1,
+    )
+    recovery_client = FramedConsoleClient(transport, 1)
+
+    try:
+        await transport.connect()
+        expected_error: tuple[type[BaseException], ...]
+        if failure == "timeout":
+            expected_error = (TransportResponseTimeoutError,)
+        elif failure == "eof":
+            expected_error = (IncompleteResponseError,)
+        else:
+            expected_error = (
+                IncompleteResponseError,
+                ConnectionResetError,
+            )
+
+        with pytest.raises(expected_error):
+            await client.execute("first")
+
+        await first_handler_finished.wait()
+        assert not transport.is_connected
+
+        assert (
+            await recovery_client.execute("second")
+            == "recovered\nCommand completed successfully"
+        )
+        assert transport.is_connected
+        assert connections == 2
+        assert commands == [b"first\r", b"second\r"]
+        assert reconnect_delays == [1]
+    finally:
+        await transport.disconnect()
+        server.close()
+        await server.wait_closed()
+
+
+@pytest.mark.asyncio
+async def test_framed_incomplete_response_reconnects_before_next_command() -> None:
+    connections = 0
+    commands: list[bytes] = []
+    reconnect_delays: list[float] = []
+    six_module_rows = "\r\n".join(
+        f"Module {position}: current" for position in range(1, 7)
+    ).encode()
+
+    async def fast_sleep(seconds: float) -> None:
+        reconnect_delays.append(seconds)
+
+    async def handle(
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+    ) -> None:
+        nonlocal connections
+        connections += 1
+        command = await reader.readuntil(b"\r")
+        commands.append(command)
+        if connections == 1:
+            writer.write(b"@\r\n" + six_module_rows + b"\r\n$$")
+        else:
+            writer.write(
+                b"@\r\n"
+                + six_module_rows
+                + b"\r\nCommand completed successfully\r\n$$pylon_debug>",
+            )
+        await writer.drain()
+
+    server, port = await start_server(handle)
+    transport = AsyncTcpTransport(
+        "127.0.0.1",
+        port,
+        1,
+        reconnect_min_seconds=1,
+        reconnect_max_seconds=2,
+        sleep=fast_sleep,
+    )
+    client = FramedConsoleClient(transport, 0.01)
+    recovery_client = FramedConsoleClient(transport, 1)
+
+    try:
+        await transport.connect()
+
+        with pytest.raises(TransportResponseTimeoutError):
+            await client.execute("pwrsys")
+
+        assert not transport.is_connected
+        assert commands == [b"pwrsys\r"]
+
+        payload = await recovery_client.execute("pwrsys")
+
+        assert payload.endswith("Command completed successfully")
+        assert payload.count("Module ") == 6
+        assert commands == [b"pwrsys\r", b"pwrsys\r"]
+        assert connections == 2
+        assert reconnect_delays == [1]
     finally:
         await transport.disconnect()
         server.close()

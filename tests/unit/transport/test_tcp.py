@@ -106,6 +106,7 @@ async def test_connect_timeout_leaves_transport_disconnected(
 @pytest.mark.asyncio
 async def test_failed_exchange_reconnects_with_bounded_backoff(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     calls = 0
     writers: list[FakeWriter] = []
@@ -140,16 +141,51 @@ async def test_failed_exchange_reconnects_with_bounded_backoff(
     )
     await transport.connect()
 
-    with pytest.raises(ConnectionResetError):
+    with pytest.raises(ConnectionResetError, match="peer reset"):
         await transport.exchange(b"first", fail_read, 1)
-    with pytest.raises(ConnectionRefusedError):
+
+    assert not transport.is_connected
+    assert writers[0].closed
+
+    with pytest.raises(ConnectionRefusedError, match="refused"):
         await transport.exchange(b"second", successful_read, 1)
+
+    assert not transport.is_connected
+    assert delays == [1]
+
     result = await transport.exchange(b"third", successful_read, 1)
 
     assert result == "recovered"
+    assert transport.is_connected
     assert delays == [1, 2]
     assert calls == 3
-    assert writers[-1].written == b"third"
+    assert writers[1].written == b"third"
+    assert "Waveshare TCP reconnect scheduled in 1.0 seconds" in caplog.text
+    assert "Waveshare TCP reconnect failed" in caplog.text
+    assert "Waveshare TCP reconnect scheduled in 2.0 seconds" in caplog.text
+    assert "Waveshare TCP reconnect succeeded" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("minimum", "maximum", "message"),
+    [
+        (0, 1, "minimum must be greater than zero"),
+        (2, 1, "maximum must not be below minimum"),
+    ],
+)
+def test_rejects_invalid_reconnect_bounds(
+    minimum: float,
+    maximum: float,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        AsyncTcpTransport(
+            "gateway.local",
+            4196,
+            5,
+            reconnect_min_seconds=minimum,
+            reconnect_max_seconds=maximum,
+        )
 
 
 def test_transport_module_uses_only_standard_library_dependencies() -> None:
