@@ -10,6 +10,12 @@ class ApiModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class VersionModel(ApiModel):
+    name: str
+    version: str
+    revision: str
+
+
 class ErrorModel(ApiModel):
     group: str
     detail: str

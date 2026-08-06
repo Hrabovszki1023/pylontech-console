@@ -24,9 +24,23 @@ jobs:
   verify:
     name: Verify Python project
     runs-on: ubuntu-latest
+    outputs:
+      public-version: ${{ steps.identity.outputs.public-version }}
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Verify release identity
+        id: identity
+        shell: bash
+        run: |
+          public_version="$(
+            PYTHONPATH=src python -c \
+              'from pylontech_console.version import PUBLIC_VERSION; print(PUBLIC_VERSION)'
+          )"
+          PYTHONPATH=src python -c \
+            'import os; from pylontech_console.version import validate_release_tag; validate_release_tag(os.environ["GITHUB_REF_TYPE"], os.environ["GITHUB_REF_NAME"])'
+          echo "public-version=$public_version" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -83,6 +97,9 @@ jobs:
           labels: |
             org.opencontainers.image.title=Pylontech Console
             org.opencontainers.image.description=Read-only Pylontech battery monitoring service
+            org.opencontainers.image.version=${{ needs.verify.outputs.public-version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
       - name: Build and optionally publish image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
@@ -93,5 +110,8 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PYLONTECH_BUILD_VERSION=${{ needs.verify.outputs.public-version }}
+            PYLONTECH_BUILD_REVISION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -27,6 +27,7 @@ from pylontech_console.domain.process import (
 from pylontech_console.outputs.api import create_application
 from pylontech_console.outputs.api.query import StateQuery
 from pylontech_console.outputs.web import mount_web
+from pylontech_console.version import BuildIdentity
 from pylontech_console.mqtt_health import MqttHealth, MqttHealthStore
 from pylontech_console.polling import CurrentStateStore
 
@@ -116,6 +117,7 @@ def create_web_test_app(
     web_settings: WebSettings | None = None,
     mqtt_health: MqttHealth | None = None,
     console_health: ConsoleSessionHealth | None = None,
+    build_identity: BuildIdentity | None = None,
 ) -> FastAPI:
     barcodes = (unsafe_barcode or "MODULE-A", "MODULE-B")
     records = {
@@ -186,7 +188,7 @@ def create_web_test_app(
             else ConsoleSessionHealthStore(console_health)
         ),
     )
-    app = create_application(store, query=query)
+    app = create_application(store, query=query, identity=build_identity)
     app.state.current_state_store = store
-    mount_web(app, query, web_settings)
+    mount_web(app, query, web_settings, build_identity)
     return app

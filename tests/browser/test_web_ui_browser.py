@@ -74,6 +74,8 @@ def _assert_page(page: Page, url: str, viewport: ViewportSize) -> None:
     page.set_viewport_size(viewport)
     page.goto(url, wait_until="networkidle")
     assert page.get_by_test_id("mqtt-status").is_visible()
+    assert page.get_by_test_id("app-version").is_visible()
+    assert page.get_by_test_id("app-revision").is_visible()
     assert page.get_by_test_id("cell-voltage-heatmap").is_visible()
     assert page.get_by_test_id("module-MODULE-A-card").is_visible()
     assert page.get_by_test_id(

@@ -10,6 +10,34 @@ Version 0.1 shall provide a read-only microservice that automatically discovers 
 
 The implementation shall prioritize observability. It shall not modify battery configuration or operating state.
 
+## Product and build identity
+
+The authoritative public product version is the `__version__` literal declared
+once in `src/pylontech_console/version.py`. Version 0.1 beta starts with the
+contractual spelling:
+
+```text
+0.1.0-beta.1
+```
+
+REST, Web, OpenAPI and OCI metadata use this spelling. Python package metadata
+may normalize it to the equivalent PEP 440 spelling.
+
+Every CI-built artifact also carries the exact full Git commit SHA as its
+revision. Web may display the first seven characters; REST and OCI metadata
+retain the full SHA. Local/editable execution uses `development`, which never
+claims to identify a published artifact.
+
+A normal push to `main` publishes the moving `main` image and a
+revision-specific image tag. A versioned release is published only by
+deliberately creating a Git tag whose text, after removing exactly one leading
+`v`, equals the authoritative public version. Thus version `0.1.0-beta.1`
+requires tag `v0.1.0-beta.1` and publishes image tag `0.1.0-beta.1`.
+
+CI shall fail before publishing a versioned image when tag and public version
+do not match. Prerelease tags never update `latest`; `latest` remains reserved
+for stable version tags.
+
 ## Scope
 
 Version 0.1 includes:
@@ -492,6 +520,7 @@ verification contract is defined in `rest-api-v0.1.md`.
 Minimum conceptual endpoints:
 
 ```text
+GET /api/v1/version
 GET /api/v1/health
 GET /api/v1/rack
 GET /api/v1/modules

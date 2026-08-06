@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from pylontech_console.config import WebSettings
 from pylontech_console.outputs.api.query import StateQuery
 from pylontech_console.outputs.web.query import WebQuery
+from pylontech_console.version import BuildIdentity, load_build_identity
 
 WEB_ROOT = Path(__file__).parent
 templates = Jinja2Templates(directory=WEB_ROOT / "templates")
@@ -28,6 +29,7 @@ templates.env.filters["testid"] = encode_test_id_component
 def create_web_router(
     query: StateQuery,
     settings: WebSettings,
+    identity: BuildIdentity,
 ) -> APIRouter:
     web_query = WebQuery(query, settings)
     router = APIRouter(include_in_schema=False)
@@ -37,7 +39,7 @@ def create_web_router(
         return templates.TemplateResponse(
             request,
             "rack.html",
-            {"page": web_query.rack_page()},
+            {"page": web_query.rack_page(), "app_identity": identity},
         )
 
     @router.get(
@@ -62,7 +64,7 @@ def create_web_router(
         return templates.TemplateResponse(
             request,
             "module.html",
-            {"page": page},
+            {"page": page, "app_identity": identity},
         )
 
     @router.get(
@@ -89,6 +91,7 @@ def mount_web(
     app: FastAPI,
     query: StateQuery,
     settings: WebSettings | None = None,
+    identity: BuildIdentity | None = None,
 ) -> None:
     """Mount the read-only web adapter and its local assets."""
     app.mount(
@@ -96,4 +99,10 @@ def mount_web(
         StaticFiles(directory=WEB_ROOT / "static"),
         name="web-assets",
     )
-    app.include_router(create_web_router(query, settings or WebSettings()))
+    app.include_router(
+        create_web_router(
+            query,
+            settings or WebSettings(),
+            identity or load_build_identity(),
+        ),
+    )
