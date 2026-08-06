@@ -5,7 +5,6 @@ from typing import TypeVar
 
 ResponseT = TypeVar("ResponseT")
 LOGGER = logging.getLogger(__name__)
-
 RECONNECT_MIN_SECONDS = 1.0
 RECONNECT_MAX_SECONDS = 30.0
 
@@ -34,9 +33,7 @@ class AsyncTcpTransport:
         if reconnect_min_seconds <= 0:
             raise ValueError("reconnect minimum must be greater than zero")
         if reconnect_max_seconds < reconnect_min_seconds:
-            raise ValueError(
-                "reconnect maximum must not be below minimum",
-            )
+            raise ValueError("reconnect maximum must not be below minimum")
         self._host = host
         self._port = port
         self._connect_timeout_seconds = connect_timeout_seconds
@@ -46,9 +43,11 @@ class AsyncTcpTransport:
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
         self._exchange_lock = asyncio.Lock()
+        self._connect_lock = asyncio.Lock()
         self._reconnect_required = False
         self._recovery_in_progress = False
-        self._reconnect_delay_seconds = self._reconnect_min_seconds
+        self._reconnect_delay_seconds = reconnect_min_seconds
+        self._connection_generation = 0
 
     @property
     def is_connected(self) -> bool:
@@ -56,25 +55,34 @@ class AsyncTcpTransport:
 
         return self._writer is not None and not self._writer.is_closing()
 
+    @property
+    def connection_generation(self) -> int:
+        return self._connection_generation
+
     async def connect(self) -> None:
         """Open the configured TCP connection once."""
 
-        if self.is_connected:
-            return
+        async with self._connect_lock:
+            if self.is_connected:
+                return
+            self._reader = None
+            self._writer = None
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self._host, self._port),
+                timeout=self._connect_timeout_seconds,
+            )
+            self._reader = reader
+            self._writer = writer
+            self._connection_generation += 1
+            self._reconnect_required = False
 
-        reconnecting = self._reconnect_required
-        self._reader = None
-        self._writer = None
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(self._host, self._port),
-            timeout=self._connect_timeout_seconds,
-        )
-        self._reader = reader
-        self._writer = writer
-        self._reconnect_required = False
-        if not reconnecting:
-            self._recovery_in_progress = False
-            self._reconnect_delay_seconds = self._reconnect_min_seconds
+    async def ensure_connected(self) -> None:
+        if self.is_connected and not self._reconnect_required:
+            return
+        if self._reconnect_required:
+            await self._reconnect()
+        else:
+            await self.connect()
 
     async def disconnect(self) -> None:
         """Close the owned TCP connection if one exists."""
@@ -106,7 +114,6 @@ class AsyncTcpTransport:
         async with self._exchange_lock:
             if self._reconnect_required:
                 await self._reconnect()
-
             reader = self._reader
             writer = self._writer
             if (

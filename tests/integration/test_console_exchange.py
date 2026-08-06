@@ -6,7 +6,6 @@ import pytest
 from pylontech_console.framing.console import (
     FramedConsoleClient,
     IncompleteResponseError,
-    MissingSuccessConfirmationError,
     ResponseEncodingError,
     ResponseTooLargeError,
 )
@@ -125,16 +124,12 @@ async def test_serializes_concurrent_exchanges() -> None:
             second_command_before_first_response = True
         except TimeoutError:
             pass
-        writer.write(
-            b"@\nfirst response\nCommand completed successfully\n$$",
-        )
+        writer.write(b"@\nfirst response\n$$pylon_debug>")
         await writer.drain()
         first_response_sent.set()
         second = await reader.readuntil(b"\r")
         assert second == b"second\r"
-        writer.write(
-            b"@\nsecond response\nCommand completed successfully\n$$",
-        )
+        writer.write(b"@\nsecond response\n$$pylon_debug>")
         await writer.drain()
 
     server, port = await start_server(handle)
@@ -146,15 +141,9 @@ async def test_serializes_concurrent_exchanges() -> None:
         first_task = asyncio.create_task(client.execute("first"))
         second_task = asyncio.create_task(client.execute("second"))
 
-        assert (
-            await first_task
-            == "first response\nCommand completed successfully"
-        )
+        assert await first_task == "first response"
         await first_response_sent.wait()
-        assert (
-            await second_task
-            == "second response\nCommand completed successfully"
-        )
+        assert await second_task == "second response"
         assert not second_command_before_first_response
     finally:
         await transport.disconnect()
@@ -189,7 +178,7 @@ async def test_protocol_failure_disconnects_transport(
         writer: asyncio.StreamWriter,
     ) -> None:
         await reader.readuntil(b"\r")
-        writer.write(response)
+        writer.write(response + b"pylon_debug>")
         await writer.drain()
         if expected_error is IncompleteResponseError:
             writer.close()
@@ -306,7 +295,7 @@ async def test_next_exchange_reconnects_after_transport_failure(
             return
 
         writer.write(
-            b"@\nrecovered\nCommand completed successfully\n$$",
+            b"@\nrecovered\nCommand completed successfully\n$$pylon_debug>",
         )
         await writer.drain()
 
@@ -384,7 +373,7 @@ async def test_framed_incomplete_response_reconnects_before_next_command() -> No
             writer.write(
                 b"@\r\n"
                 + six_module_rows
-                + b"\r\nCommand completed successfully\r\n$$",
+                + b"\r\nCommand completed successfully\r\n$$pylon_debug>",
             )
         await writer.drain()
 
@@ -397,25 +386,19 @@ async def test_framed_incomplete_response_reconnects_before_next_command() -> No
         reconnect_max_seconds=2,
         sleep=fast_sleep,
     )
-    client = FramedConsoleClient(transport, 1)
+    client = FramedConsoleClient(transport, 0.01)
+    recovery_client = FramedConsoleClient(transport, 1)
 
     try:
         await transport.connect()
 
-        with pytest.raises(
-            MissingSuccessConfirmationError,
-            match=(
-                "without the required success confirmation "
-                r"\(112 payload characters; "
-                "final line='Module 6: current'\\)"
-            ),
-        ):
+        with pytest.raises(TransportResponseTimeoutError):
             await client.execute("pwrsys")
 
         assert not transport.is_connected
         assert commands == [b"pwrsys\r"]
 
-        payload = await client.execute("pwrsys")
+        payload = await recovery_client.execute("pwrsys")
 
         assert payload.endswith("Command completed successfully")
         assert payload.count("Module ") == 6

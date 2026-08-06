@@ -103,6 +103,46 @@ US2000/US2000C rack in the upper charging range:
 
 The console exposes read and write commands. Version 0.1 intentionally implements read-only functionality only.
 
+The required `pwrsys` rack command is available only after the console enters
+its authenticated debug mode. Configure exactly one credential source:
+
+```bash
+export PYLONTECH_CONSOLE_LOGIN_PASSWORD='<console-password>'
+```
+
+For production Docker deployments, a password file or Docker Secret is
+preferred:
+
+```bash
+export PYLONTECH_CONSOLE_LOGIN_PASSWORD_FILE=/run/secrets/pylontech_console_password
+```
+
+Example Compose override:
+
+```yaml
+services:
+  pylontech-console:
+    secrets:
+      - pylontech_console_password
+
+secrets:
+  pylontech_console_password:
+    file: ./secrets/pylontech-console-password.txt
+```
+
+Keep `PYLONTECH_CONSOLE_LOGIN_PASSWORD` unset when the password-file setting is
+used. The two credential sources are mutually exclusive.
+
+The service verifies `pylon_debug>` before polling, re-verifies the session
+after every reconnect and attempts `logout` during controlled shutdown. The
+credential is never returned by REST, Web, MQTT or health output and is
+redacted from application diagnostics.
+
+The Waveshare console connection is unencrypted raw TCP. Place it in a
+dedicated technical network/VLAN and permit port `4196` only from the Docker
+host running Pylontech Console. The Pylontech login changes console mode; it is
+not a substitute for network isolation.
+
 ## MQTT
 
 MQTT is disabled by default. To publish the read-only current state, provide at
@@ -145,7 +185,8 @@ as `v0.1.0-beta.1` publish `0.1.0-beta.1`; prereleases do not move `latest`.
 The `latest` tag is reserved for stable semantic-version releases.
 
 The published container is configured with the same validated
-`PYLONTECH_WAVESHARE_*`, `PYLONTECH_HTTP_*`, `PYLONTECH_WEB_*` and
+`PYLONTECH_WAVESHARE_*`, `PYLONTECH_CONSOLE_*`, `PYLONTECH_HTTP_*`,
+`PYLONTECH_WEB_*` and
 `PYLONTECH_MQTT_*` environment variables used by Docker Compose. Images
 currently target `linux/amd64`.
 

@@ -15,17 +15,17 @@ class FakeWriter:
     def is_closing(self) -> bool:
         return self.closed
 
-    def write(self, data: bytes) -> None:
-        self.written.extend(data)
-
-    async def drain(self) -> None:
-        return
-
     def close(self) -> None:
         self.closed = True
 
     async def wait_closed(self) -> None:
         self.waited_closed = True
+
+    def write(self, data: bytes) -> None:
+        self.written.extend(data)
+
+    async def drain(self) -> None:
+        return
 
 
 @pytest.mark.asyncio

@@ -213,6 +213,13 @@ class MqttHealthModel(ApiModel):
     error: str | None
 
 
+class ConsoleSessionHealthModel(ApiModel):
+    mode: str
+    authenticated: bool
+    last_authenticated_at: datetime | None
+    error: str | None
+
+
 class HealthModel(ApiModel):
     generated_at: datetime
     status: str
@@ -224,6 +231,7 @@ class HealthModel(ApiModel):
     module_details: CountModel
     cell_groups: CellCountModel
     mqtt: MqttHealthModel
+    console_session: ConsoleSessionHealthModel
     errors: list[ErrorModel]
 
 

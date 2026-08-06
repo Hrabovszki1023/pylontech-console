@@ -4,6 +4,7 @@ from typing import Annotated
 
 from pydantic import (
     Field,
+    SecretStr,
     StringConstraints,
     field_validator,
     model_validator,
@@ -31,6 +32,75 @@ def load_waveshare_settings() -> WaveshareSettings:
     """Load Waveshare settings from the process environment."""
 
     return WaveshareSettings()  # type: ignore[call-arg]
+
+
+def _validate_console_password(value: str) -> str:
+    try:
+        value.encode("ascii")
+    except UnicodeEncodeError as error:
+        raise ValueError("console login password must be strict ASCII") from error
+    if not value or any(character in value for character in ("\r", "\n", "\x00")):
+        raise ValueError(
+            "console login password must be non-empty without CR, LF or NUL",
+        )
+    return value
+
+
+class ConsoleSettings(BaseSettings):
+    """Validated secret configuration for the Pylontech console session."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="PYLONTECH_CONSOLE_",
+        extra="ignore",
+    )
+
+    login_password: SecretStr | None = None
+    login_password_file: Path | None = None
+
+    @field_validator("login_password", mode="before")
+    @classmethod
+    def empty_password_is_none(cls, value: object) -> object:
+        return None if value == "" else value
+
+    @field_validator("login_password_file", mode="before")
+    @classmethod
+    def empty_path_is_none(cls, value: object) -> object:
+        return None if value == "" else value
+
+    @model_validator(mode="after")
+    def validate_credential_source(self) -> "ConsoleSettings":
+        if (self.login_password is None) == (self.login_password_file is None):
+            raise ValueError(
+                "configure exactly one console login password source",
+            )
+        self.password()
+        return self
+
+    def password(self) -> str:
+        if self.login_password is not None:
+            return _validate_console_password(
+                self.login_password.get_secret_value(),
+            )
+        path = self.login_password_file
+        if path is None:
+            raise ValueError("console login password is required")
+        try:
+            value = path.read_bytes()
+        except OSError as error:
+            raise ValueError("console login password file is not readable") from error
+        if value.endswith(b"\r\n"):
+            value = value[:-2]
+        elif value.endswith((b"\r", b"\n")):
+            value = value[:-1]
+        try:
+            decoded = value.decode("ascii")
+        except UnicodeDecodeError as error:
+            raise ValueError("console login password must be strict ASCII") from error
+        return _validate_console_password(decoded)
+
+
+def load_console_settings() -> ConsoleSettings:
+    return ConsoleSettings()
 
 
 class PollingSettings(BaseSettings):

@@ -1,0 +1,6 @@
+pwrsys
+@
+System is charging
+Command completed successfully
+$$
+pylon_debug>
