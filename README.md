@@ -99,6 +99,16 @@ US2000/US2000C rack in the upper charging range:
 
 ![Pylontech Console cell-voltage heatmap showing five real battery modules](docs/images/cell-voltage-heatmap.png)
 
+### Example: detecting a problematic cell
+
+The following real capture shows why relative deviation and absolute voltage
+state are displayed together. Cell 8 of module 5 reached 3552 mV while the
+module average was 3384.53 mV, a deviation of +167.47 mV. The BMS also reported
+the cell as critically overvoltage (`BMS CRITICAL: OV`), so the tile is marked
+as an absolute-voltage fault rather than only as a red relative deviation.
+
+![Real heatmap capture showing cell 8 of module 5 at 3552 mV with a BMS critical overvoltage status](docs/images/diagnostics/cell-8-overvoltage-example.png)
+
 ## Safety
 
 The console exposes read and write commands. Version 0.1 intentionally implements read-only functionality only.
