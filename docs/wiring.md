@@ -45,6 +45,12 @@ TX and RX must be crossed between the battery and the serial device server.
 
 The remaining five conductors are not connected.
 
+The following photo shows the working T568B patch-cable connection at the
+Waveshare DB9 connector. White/Green is connected to DB9 pin 2, Green to pin
+3, and Brown to pin 5.
+
+![Working T568B patch-cable wiring at the Waveshare DB9 connector](images/waveshare-db9-t568b-wiring.jpg)
+
 ```text
 Pylontech US2000C                    Waveshare
 RJ45 console                        DB9 RS232
