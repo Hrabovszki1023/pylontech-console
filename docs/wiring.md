@@ -15,6 +15,9 @@ This document describes the tested cable used to connect a Pylontech US2000C con
 
 The cable and settings were verified by successfully executing the console commands `help`, `info`, `pwr`, `bat`, `stat`, and `time`.
 
+See [waveshare.md](waveshare.md) for the verified serial device server,
+installation photographs and network-security guidance.
+
 ## Electrical pinout
 
 ### Pylontech console port (RJ45)

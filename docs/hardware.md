@@ -42,6 +42,8 @@ documentation and the requirements of the complete electrical installation.
 The physical reference connection uses the console port of the rack's
 US2000C master module. See [wiring.md](wiring.md) for the verified RJ45-to-DB9
 pinout and the warning that the battery console connector is not Ethernet.
+See [waveshare.md](waveshare.md) for photographs, the deployment rationale and
+the required network-security boundary.
 
 ## Verified deployment platform
 
