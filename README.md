@@ -161,7 +161,7 @@ least:
 ```bash
 export PYLONTECH_MQTT_ENABLED=true
 export PYLONTECH_MQTT_HOST=192.168.1.10
-docker compose up --build -d
+docker compose up -d
 ```
 
 The default port is `1883`, client ID is `pylontech-console`, topic prefix is
@@ -210,6 +210,97 @@ The published container is configured with the same validated
 `PYLONTECH_WEB_*` and
 `PYLONTECH_MQTT_*` environment variables used by Docker Compose. Images
 currently target `linux/amd64`.
+
+## Install with Docker Compose
+
+The public Compose setup pulls the published image; it does not require a local
+Python installation or image build. Docker Engine with the Compose plugin is
+required on a `linux/amd64` host.
+
+```bash
+git clone https://github.com/Hrabovszki1023/pylontech-console.git
+cd pylontech-console
+cp .env.example .env
+mkdir -p secrets
+printf '%s\n' '<console-password>' > secrets/pylontech-console-password.txt
+```
+
+Edit `.env` and set at least the address of the Waveshare gateway:
+
+```env
+PYLONTECH_WAVESHARE_HOST=192.168.20.211
+PYLONTECH_HTTP_PUBLISHED_PORT=8001
+PYLONTECH_IMAGE_TAG=main
+```
+
+The password file must contain only the password accepted by the Pylontech
+`login` command. Do not commit `.env` or anything below `secrets/`; both are
+ignored by Git.
+
+Pull and start the container:
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+```
+
+Open the Web UI at `http://<docker-host>:8001/`. Verify the REST API and inspect
+startup logs with:
+
+```bash
+curl -fsS http://127.0.0.1:8001/api/v1/health | python3 -m json.tool
+curl -fsS http://127.0.0.1:8001/api/v1/version | python3 -m json.tool
+docker compose logs --tail=100
+```
+
+Docker health means that the local HTTP service responds. A disconnected
+battery, Waveshare gateway or MQTT broker is reported by the application as
+degraded/offline but intentionally does not cause a Docker restart loop.
+
+### Enable MQTT
+
+Set the broker values in `.env`, then recreate the container:
+
+```env
+PYLONTECH_MQTT_ENABLED=true
+PYLONTECH_MQTT_HOST=192.168.20.196
+PYLONTECH_MQTT_PORT=1883
+PYLONTECH_MQTT_USERNAME=mqtt_admin
+PYLONTECH_MQTT_PASSWORD=<mqtt-password>
+PYLONTECH_MQTT_TOPIC_PREFIX=pylontech
+```
+
+```bash
+docker compose up -d
+```
+
+### Update or remove
+
+To update the selected tag and recreate the service:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+To stop and remove only the application container and Compose network:
+
+```bash
+docker compose down
+```
+
+No database or persistent inventory volume is created. The service rediscovers
+the currently connected modules after every restart.
+
+### Local development build
+
+Developers can replace the published image with a build from the current source
+tree:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+```
 
 ## License
 

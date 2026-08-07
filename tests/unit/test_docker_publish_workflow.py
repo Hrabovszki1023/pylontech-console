@@ -15,7 +15,7 @@ def test_docker_publish_workflow_is_valid_yaml() -> None:
 
     assert document["name"] == "Verify and publish Docker image"
     assert document["permissions"] == {"contents": "read"}
-    assert set(document["jobs"]) == {"verify", "image"}
+    assert set(document["jobs"]) == {"verify", "image", "dockerhub-description"}
 
 
 def test_docker_publish_workflow_has_safe_events_and_credentials() -> None:
@@ -30,6 +30,8 @@ def test_docker_publish_workflow_has_safe_events_and_credentials() -> None:
     assert "${{ secrets.DOCKERHUB_TOKEN }}" in text
     assert "hrabovszki/pylontech-console" in text
     assert "platforms: linux/amd64" in text
+    assert "Update Docker Hub overview" in text
+    assert "enable-url-completion: true" in text
 
 
 def test_docker_publish_workflow_reserves_latest_for_stable_tags() -> None:

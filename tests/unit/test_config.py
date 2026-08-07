@@ -85,11 +85,15 @@ def test_console_rejects_invalid_configuration(
         ConsoleSettings.model_validate(values)
 
 
-def test_compose_passes_console_secret_sources() -> None:
+def test_public_compose_mounts_console_password_file() -> None:
     compose = (PROJECT_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
-    assert "PYLONTECH_CONSOLE_LOGIN_PASSWORD:" in compose
-    assert "PYLONTECH_CONSOLE_LOGIN_PASSWORD_FILE:" in compose
+    assert "PYLONTECH_CONSOLE_LOGIN_PASSWORD:" not in compose
+    assert (
+        "PYLONTECH_CONSOLE_LOGIN_PASSWORD_FILE: "
+        "/run/secrets/pylontech_console_password"
+    ) in compose
+    assert "pylontech_console_password:" in compose
 
 
 def test_loads_values_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:

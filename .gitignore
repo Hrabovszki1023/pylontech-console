@@ -25,6 +25,7 @@ Desktop.ini
 .env
 .env.*
 !.env.example
+secrets/
 *.local
 
 # Captured temporary sessions

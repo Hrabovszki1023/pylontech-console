@@ -1,0 +1,7 @@
+services:
+  pylontech-console:
+    image: pylontech-console:development
+    build:
+      context: .
+      args:
+        PYLONTECH_BUILD_REVISION: development
