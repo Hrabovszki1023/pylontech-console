@@ -686,6 +686,29 @@ The deployment shall provide:
 - structured application logs,
 - configurable log level.
 
+The repository's default `docker-compose.yml` shall be the public deployment
+path and shall pull `hrabovszki/pylontech-console` rather than build source
+locally. The selected image tag shall be configurable and shall default to
+`main` until the first versioned beta is published. A separate Compose override
+shall provide the local source-build workflow for development.
+
+The public container shall listen internally on port `8000`. Compose shall map
+that port to a separately configurable host port whose default is `8001`.
+
+The console login password shall be mounted as a read-only Compose secret by
+default. The public example configuration shall contain no real credential.
+MQTT shall remain disabled by default.
+
+The image-level health check shall verify only that the local HTTP service and
+`GET /api/v1/health` respond. Battery, Waveshare or MQTT state reported inside
+the health payload shall not make the container unhealthy and shall not trigger
+a restart loop during a temporary external outage.
+
+The GitHub README shall provide a complete install, verification, update and
+uninstall example for the published image. The same README shall be synchronized
+to the Docker Hub repository overview after a successful `main` or version-tag
+image publication, using the existing Docker Hub credentials.
+
 The Waveshare raw TCP console is unencrypted and shall be deployed on a
 dedicated isolated technical network or VLAN. Firewall policy shall permit
 TCP port 4196 only from the Docker host running this service. Console
