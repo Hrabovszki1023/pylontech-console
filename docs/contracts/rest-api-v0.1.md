@@ -295,8 +295,7 @@ limit: integer, default 100, allowed range 1..1000
 Each event contains `kind`, `timestamp`, sanitized `detail`, and nullable
 `barcode`, `position`, `previous_position` and `replaced_barcode`.
 
-Persistent event history is outside issue #19 and requires the separate
-inventory-persistence work.
+Persistent event history is outside issue #19 and Version 0.1.
 
 ## HTTP status behavior
 
@@ -395,7 +394,7 @@ GET /api/v1/modules
 
 - web pages, Jinja2 templates, HTMX fragments and heat maps;
 - MQTT publication;
-- SQLite persistence;
+- durable inventory persistence;
 - authentication and authorization;
 - configuration editing;
 - historical measurements;

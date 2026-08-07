@@ -15,7 +15,7 @@ The service must:
 - discover connected modules dynamically,
 - identify modules by barcode independently of their current rack position,
 - expose current values through MQTT, REST and a read-only web UI,
-- persist module inventory and topology changes,
+- track the currently discovered module inventory and topology in memory,
 - run reliably as a Docker container,
 - remain simple enough to implement and operate on a small Proxmox host.
 
@@ -34,8 +34,7 @@ Selected technologies:
 | Web/API | FastAPI | REST API, health endpoints and web server |
 | Data models/configuration | Pydantic | Typed domain models and validated configuration |
 | MQTT | `paho-mqtt` | Publishing values for ioBroker and other consumers |
-| Inventory persistence | SQLite | Known modules, positions and topology events |
-| Database access | SQLAlchemy | Explicit and testable persistence layer |
+| Runtime inventory | In-memory domain state | Current modules, positions and topology events |
 | Web UI | Jinja2 plus HTMX | Simple read-only status pages without a separate frontend build |
 | Testing | pytest | Parser, domain, integration and smoke tests |
 | Code quality | Ruff and mypy | Linting, formatting checks and static typing |
@@ -52,7 +51,6 @@ pylontech-console-service
 ├── protocol parsers
 ├── discovery and inventory
 ├── current in-memory state
-├── SQLite inventory repository
 ├── MQTT publisher
 ├── REST API
 └── read-only web UI
@@ -64,7 +62,7 @@ The service is deliberately not split into multiple microservices in version 0.1
 
 ### Python
 
-Python is well suited to the dominant tasks in this project: asynchronous TCP communication, parsing structured text, MQTT integration, SQLite access and small web applications. It also allows the captured console responses to be used directly as parser test fixtures.
+Python is well suited to the dominant tasks in this project: asynchronous TCP communication, parsing structured text, MQTT integration and small web applications. It also allows the captured console responses to be used directly as parser test fixtures.
 
 Python is the language of the reference implementation, not part of the external protocol contract. A future implementation in another language remains possible if it satisfies the same contracts.
 
@@ -104,21 +102,20 @@ MQTT is the primary integration interface for ioBroker and time-series processin
 
 Modbus TCP is intentionally outside version 0.1 because the barcode-based and nested cell model is less natural to represent in fixed register ranges.
 
-### SQLite
+### Runtime inventory
 
-SQLite is sufficient for persistent inventory data:
+The battery system is the authoritative source for current module order,
+positions, barcodes, identity data and measurements. Version 0.1 therefore
+keeps inventory and topology state in memory and rebuilds it through discovery
+after every service restart.
 
-- known module barcodes,
-- first and last observation,
-- current and previous position,
-- firmware and hardware identity,
-- topology events.
-
-It requires no additional database service. High-frequency measurement history is not stored in SQLite; it is published through MQTT for ioBroker/InfluxDB/Grafana.
+Modules that disappear remain marked as missing only for the lifetime of the
+running instance. Durable inventory history and an application-managed expected
+module list are not required for Version 0.1.
 
 ### Docker
 
-Docker provides a reproducible runtime, isolated dependencies, health checks and straightforward deployment on Proxmox. The container shall run without privileged permissions and use a persistent `/data` volume.
+Docker provides a reproducible runtime, isolated dependencies, health checks and straightforward deployment on Proxmox. The container shall run without privileged permissions. Version 0.1 does not require a persistent data volume.
 
 ## Configuration
 
@@ -131,7 +128,6 @@ Required configuration areas:
 - MQTT host, port and optional credentials,
 - polling intervals,
 - HTTP listening address and port,
-- SQLite database path,
 - log level.
 
 Secrets shall not be stored in the repository.
@@ -151,7 +147,6 @@ Secrets shall not be stored in the repository.
 
 - Python is not the most resource-efficient option,
 - synchronous libraries such as `paho-mqtt` require careful integration with the asynchronous application,
-- SQLite permits only limited write concurrency, which is acceptable because inventory writes are infrequent,
 - HTMX limits the UI to comparatively simple interactions, which is intentional for version 0.1.
 
 ## Out of scope for version 0.1
@@ -169,7 +164,7 @@ Secrets shall not be stored in the repository.
 This decision shall be reviewed if one of the following occurs:
 
 - the service must support many racks concurrently,
-- SQLite becomes a bottleneck,
+- durable application-owned inventory becomes an operational requirement,
 - the web UI requires substantial client-side interaction,
 - Python runtime or memory consumption becomes operationally relevant,
 - a required library proves unreliable in the target environment.

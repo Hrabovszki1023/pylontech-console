@@ -27,8 +27,6 @@ Domain model and current state
         |
         +--> Discovery and inventory
         |
-        +--> Persistence
-        |
         +--> REST API
         +--> Web UI
         +--> MQTT
@@ -101,13 +99,9 @@ Discovery:
 - detects discovered, removed, reappeared, moved or replaced modules,
 - reports missing or duplicate barcodes as inventory errors.
 
-Discovery uses abstractions for console commands, state and persistence; it does not parse raw text itself.
-
-### Persistence
-
-Persistence stores long-lived inventory and topology information. It does not store high-frequency measurement history in version 0.1.
-
-The persistence layer must not know the console protocol or presentation formats.
+Discovery uses abstractions for console commands and current state; it does not
+parse raw text itself. Inventory and topology are runtime state. The battery
+system is rediscovered after every service restart.
 
 ### Outputs
 
@@ -129,7 +123,7 @@ Application orchestration coordinates:
 - startup discovery,
 - cyclic polling,
 - state updates,
-- persistence of inventory changes,
+- runtime tracking of inventory changes,
 - publication and presentation,
 - graceful startup and shutdown.
 

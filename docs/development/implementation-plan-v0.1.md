@@ -178,19 +178,20 @@ No MQTT-specific duplicate polling or parser logic is permitted.
 
 Result: ioBroker can consume all relevant values.
 
-## Step 10: SQLite inventory persistence
+## Step 10: Runtime inventory behavior
 
-Persist only long-lived inventory information:
+Keep the currently discovered inventory in memory:
 
-- known barcode IDs,
-- first and last seen timestamps,
-- model and firmware identity,
-- current and previous positions,
-- topology events.
+- identify modules by barcode,
+- preserve missing modules for the lifetime of the running instance,
+- update current position mappings when topology changes,
+- emit runtime topology events,
+- rebuild the complete inventory from the battery system after restart.
 
-Do not store high-frequency measurement history in SQLite.
+No SQLite database or persistent inventory volume is required.
 
-Result: module identity and maintenance-related moves survive service restarts.
+Result: the service reflects the current battery system and reports modules
+that disappear while the instance is running.
 
 ## Step 11: Operational hardening
 
@@ -202,7 +203,6 @@ Complete the version for continuous operation:
 - reconnect and retry behavior,
 - bounded raw-response diagnostics,
 - configuration documentation,
-- persistent `/data` volume,
 - non-privileged container user,
 - startup validation,
 - clean handling of MQTT unavailability.
@@ -215,13 +215,13 @@ Verify the Definition of Done from `docs/contracts/version-0.1.md` against the r
 
 Required acceptance flow:
 
-1. start from an empty persistent data directory,
+1. start the service without a persistent inventory database,
 2. discover the rack without a configured module count,
 3. identify every module by barcode,
 4. display rack and cell values in the web UI,
 5. show the cell voltage heat map,
 6. publish data through MQTT,
-7. restart the container and retain module inventory,
+7. restart the container and rediscover the complete current module inventory,
 8. interrupt the Waveshare connection and verify automatic recovery,
 9. verify that only allowlisted read-only commands were sent.
 

@@ -48,8 +48,6 @@ pylontech-console/
 │       │   └── __init__.py
 │       ├── discovery/
 │       │   └── __init__.py
-│       ├── persistence/
-│       │   └── __init__.py
 │       └── outputs/
 │           ├── __init__.py
 │           ├── api/
@@ -81,7 +79,6 @@ Python package directories and test directories may contain placeholder files wh
 | `src/pylontech_console/parsers/` | Conversion of framed command payloads into typed domain data |
 | `src/pylontech_console/domain/` | Protocol-independent domain types and current-state model |
 | `src/pylontech_console/discovery/` | Dynamic rack discovery and position-to-barcode mapping |
-| `src/pylontech_console/persistence/` | Inventory and topology persistence abstractions and implementations |
 | `src/pylontech_console/outputs/api/` | Read-only REST delivery |
 | `src/pylontech_console/outputs/mqtt/` | MQTT publication |
 | `src/pylontech_console/outputs/web/` | Read-only server-rendered web UI |
@@ -105,7 +102,6 @@ Issue #1 does not implement:
 - protocol parsers,
 - domain behavior,
 - discovery,
-- persistence,
 - REST endpoints,
 - MQTT publication,
 - web UI,

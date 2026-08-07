@@ -26,8 +26,7 @@ transport       -> standard/library abstractions only
 framing         -> raw transport data types
 parsers         -> framed payload types + domain value types
 domain          -> no infrastructure or output layer
-discovery       -> domain + console-client abstraction + repository abstraction
-persistence     -> domain persistence records/interfaces
+discovery       -> domain + console-client abstraction + current-state abstraction
 outputs/api     -> application/current-state query interfaces
 outputs/web     -> application/current-state query interfaces
 outputs/mqtt    -> application/current-state query/event interfaces
@@ -38,12 +37,11 @@ Configuration and application startup may construct concrete adapters, but shall
 
 ## Forbidden dependencies
 
-- Domain must not import FastAPI, MQTT, SQLAlchemy, Jinja2/HTMX or TCP transport code.
-- Parsers must not import transport, discovery, persistence, REST, web or MQTT implementations.
+- Domain must not import FastAPI, MQTT, Jinja2/HTMX or TCP transport code.
+- Parsers must not import transport, discovery, REST, web or MQTT implementations.
 - Framing must not know command-specific fields or domain meaning.
 - Transport must not parse command payloads or update domain state.
 - Discovery must not parse raw console text.
-- Persistence must not execute console commands or publish MQTT/HTTP output.
 - REST, web and MQTT must not access the Waveshare gateway directly.
 - REST, web and MQTT must not implement separate polling, parsing or duplicate current-state models.
 - No production component may expose arbitrary console-command execution.
@@ -55,7 +53,7 @@ The following boundaries shall be expressed through explicit interfaces, protoco
 
 - console command execution,
 - current-state queries and updates,
-- inventory repository,
+- runtime inventory state,
 - topology event sink,
 - MQTT publisher,
 - time source where freshness logic requires deterministic tests.
@@ -69,7 +67,6 @@ Concrete implementations are wired at the application composition boundary.
 - Parsers own conversion from documented payloads.
 - Domain/current state owns the authoritative runtime representation.
 - Discovery owns position-to-barcode reconciliation.
-- Persistence owns durable inventory records.
 - Output adapters own serialization for their channel, not the underlying state.
 
 ## Read-only enforcement

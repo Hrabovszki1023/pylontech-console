@@ -16,7 +16,7 @@ Version 0.1 focuses on:
 - REST API;
 - MQTT;
 - read-only Web UI including cell heat maps;
-- SQLite inventory.
+- runtime inventory based on the battery system's current state.
 
 No write commands are implemented in Version 0.1.
 
@@ -32,7 +32,7 @@ No write commands are implemented in Version 0.1.
 
 ## Architecture
 
-Pylontech → TCP Transport → Response Framing → Parsers → Domain Model → Discovery/Inventory → REST / MQTT / Web / SQLite
+Pylontech → TCP Transport → Response Framing → Parsers → Domain Model → Discovery/Runtime Inventory → REST / MQTT / Web
 
 ## Repository Structure
 

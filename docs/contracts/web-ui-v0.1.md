@@ -605,7 +605,7 @@ and narrow viewport sizes.
 ## Out of scope
 
 - MQTT publication;
-- SQLite persistence;
+- durable inventory persistence;
 - historical measurements, charts or trends;
 - Grafana dashboards and alert rules;
 - a temperature heatmap as a required deliverable;

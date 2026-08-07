@@ -283,8 +283,9 @@ modules/<barcode>/last_seen_at
 modules remain under their barcode with `present=false`; their module topics
 are not reassigned or deleted merely because they are absent.
 
-Until SQLite persistence is implemented, “known” means known to the current
-process. MQTT does not invent durable inventory history.
+“Known” means known to the current process. Version 0.1 intentionally rebuilds
+inventory from the battery system after every restart. MQTT does not invent
+durable inventory history.
 
 ## Rack topics
 
@@ -463,7 +464,7 @@ The non-retained compact JSON payload is:
 Events are published in their authoritative state order. A reconnect
 republishes current retained state but does not replay already emitted
 in-process events. MQTT QoS 1 can still duplicate an individual delivery.
-Persistent replay is outside this issue and belongs to inventory persistence.
+Persistent replay is outside Version 0.1.
 
 ## Publication triggers and snapshots
 
@@ -673,7 +674,7 @@ start/request/interruption/recovery/termination checks.
 - multiple racks in one process;
 - direct InfluxDB or Grafana integration;
 - high-frequency measurement persistence;
-- SQLite inventory implementation or persistent event replay;
+- durable inventory or persistent event replay;
 - broker installation or administration;
 - web-based MQTT configuration;
 - changes to battery polling, protocol parsing or the read-only command

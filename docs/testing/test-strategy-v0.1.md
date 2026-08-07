@@ -80,7 +80,7 @@ Required scenarios:
 - duplicate barcode reported at two positions,
 - missing barcode,
 - one module response fails while other modules remain valid,
-- service restart with an existing persisted inventory.
+- service restart followed by complete inventory rediscovery from the battery system.
 
 The primary invariant is:
 
@@ -174,8 +174,8 @@ Verify the built Docker image:
 - rejects invalid required configuration,
 - exposes the configured HTTP port,
 - passes its health check,
-- writes inventory to the mounted `/data` volume,
-- retains inventory after restart,
+- requires no mounted inventory volume,
+- rediscovers the current inventory after restart,
 - runs without privileged mode,
 - shuts down cleanly.
 
@@ -199,7 +199,7 @@ Tests shall be automated in the same order as the implementation:
 4. REST,
 5. web and heat map,
 6. MQTT,
-7. SQLite persistence,
+7. runtime inventory loss/reappearance and restart rediscovery,
 8. Docker smoke tests,
 9. real-device acceptance tests.
 
