@@ -705,9 +705,10 @@ the health payload shall not make the container unhealthy and shall not trigger
 a restart loop during a temporary external outage.
 
 The GitHub README shall provide a complete install, verification, update and
-uninstall example for the published image. The same README shall be synchronized
-to the Docker Hub repository overview after a successful `main` or version-tag
-image publication, using the existing Docker Hub credentials.
+uninstall example for the published image. The Docker Hub repository overview
+shall contain the same installation example and may be maintained manually.
+Updating repository metadata shall not require granting the image-publishing
+token permission to delete Docker Hub content.
 
 The Waveshare raw TCP console is unencrypted and shall be deployed on a
 dedicated isolated technical network or VLAN. Firewall policy shall permit
