@@ -352,6 +352,7 @@ async def test_framed_incomplete_response_reconnects_before_next_command() -> No
     connections = 0
     commands: list[bytes] = []
     reconnect_delays: list[float] = []
+    first_response_release = asyncio.Event()
     six_module_rows = "\r\n".join(
         f"Module {position}: current" for position in range(1, 7)
     ).encode()
@@ -365,9 +366,10 @@ async def test_framed_incomplete_response_reconnects_before_next_command() -> No
     ) -> None:
         nonlocal connections
         connections += 1
+        connection_number = connections
         command = await reader.readuntil(b"\r")
         commands.append(command)
-        if connections == 1:
+        if connection_number == 1:
             writer.write(b"@\r\n" + six_module_rows + b"\r\n$$")
         else:
             writer.write(
@@ -376,6 +378,8 @@ async def test_framed_incomplete_response_reconnects_before_next_command() -> No
                 + b"\r\nCommand completed successfully\r\n$$pylon_debug>",
             )
         await writer.drain()
+        if connection_number == 1:
+            await first_response_release.wait()
 
     server, port = await start_server(handle)
     transport = AsyncTcpTransport(
@@ -394,6 +398,7 @@ async def test_framed_incomplete_response_reconnects_before_next_command() -> No
 
         with pytest.raises(TransportResponseTimeoutError):
             await client.execute("pwrsys")
+        first_response_release.set()
 
         assert not transport.is_connected
         assert commands == [b"pwrsys\r"]
@@ -406,6 +411,7 @@ async def test_framed_incomplete_response_reconnects_before_next_command() -> No
         assert connections == 2
         assert reconnect_delays == [1]
     finally:
+        first_response_release.set()
         await transport.disconnect()
         server.close()
         await server.wait_closed()
