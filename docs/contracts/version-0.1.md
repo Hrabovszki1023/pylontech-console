@@ -49,7 +49,7 @@ Version 0.1 includes:
 - MQTT publication,
 - a read-only status web interface,
 - a read-only REST API,
-- local persistence of the module inventory and topology history,
+- runtime tracking of the currently discovered module inventory and topology,
 - health, freshness and communication status,
 - automatic reconnect and recovery,
 - containerized deployment.
@@ -144,11 +144,17 @@ position -> barcode
 barcode -> module data and current position
 ```
 
-A module moved during maintenance shall retain its previous identity and history.
+A module moved during operation shall retain its barcode identity while the
+service instance is running. After a restart, the service shall discover the
+current topology again from the battery system.
 
-A different barcode found at an existing position shall update the topology mapping and shall not overwrite the data of the previously installed module.
+A different barcode found at an existing position shall update the topology
+mapping and shall not overwrite the runtime data of the previously installed
+module while the service instance is running.
 
-Removed modules shall remain known in the local inventory and shall be marked as not currently present.
+Removed modules shall remain known in the runtime inventory and shall be marked
+as not currently present until the service restarts. The battery system's
+current response is the authoritative inventory after every restart.
 
 Missing, empty or duplicate barcodes shall be treated as inventory errors and shall be visible through health status, logs, MQTT and the web interface.
 
@@ -199,7 +205,7 @@ At service startup:
 4. determine all present positions,
 5. execute `info <position>` for every present position,
 6. build the position-to-barcode mapping,
-7. compare the discovered topology with persisted inventory data,
+7. compare the discovered topology with the current runtime inventory,
 8. emit topology events where applicable.
 
 Discovery and cyclic polling must not begin until the console session has been
@@ -539,26 +545,31 @@ GET /api/v1/positions
 
 The REST API shall not expose write operations or arbitrary console commands.
 
-## Inventory persistence
+## Runtime inventory
 
-The service shall persist module inventory and topology metadata locally, preferably in SQLite.
+Version 0.1 shall not use SQLite or another local database for inventory or
+topology persistence. The current state reported by the Pylontech system is the
+single authoritative source for module order, positions, barcodes, model and
+firmware information, and measurements.
 
-Persisted information shall include at minimum:
+The service shall rebuild its inventory from the battery system after every
+restart. Historical firmware versions, previous positions and previous
+inventory snapshots are not required for operation.
 
-- barcode,
-- model,
-- firmware and board information,
-- first seen timestamp,
-- last seen timestamp,
-- last known position,
-- current present state,
-- topology-change events.
+Within a running service instance, the service shall retain the barcodes it has
+observed. If a previously observed barcode disappears, the module shall remain
+visible as missing in the runtime inventory. This expectation list is
+intentionally reset when the service restarts.
 
-High-frequency measurement history does not need to be stored in SQLite.
+A durable expected-module list and any web action such as `Remove missing
+module` are outside Version 0.1. Such a feature requires its own contract
+because it introduces persistent application-owned state and a write operation
+into the otherwise read-only web interface.
 
 ## Events
 
-The service shall emit and persist topology events when detected:
+The service shall emit topology events when detected during the lifetime of the
+running instance:
 
 ```text
 MODULE_DISCOVERED
@@ -668,7 +679,8 @@ Version 0.1 shall be deployable as a Docker container suitable for Proxmox-hoste
 The deployment shall provide:
 
 - non-privileged execution,
-- persistent configuration and inventory storage,
+- runtime configuration through validated environment variables and/or files,
+- no required inventory database or persistent inventory volume,
 - container health check,
 - automatic restart compatibility,
 - structured application logs,
@@ -724,11 +736,11 @@ Version 0.1 is complete when all of the following are true:
 - every module is identified by barcode,
 - measurements are stored and published under the barcode identity,
 - position-to-barcode resolution is available,
-- moving modules does not mix their identities or histories,
+- moving modules during operation does not mix their barcode identities or current data,
 - rack, module and cell values are visible in ioBroker through MQTT,
 - current values are visible on a read-only web page,
 - the same data is available through a read-only REST API,
-- inventory and topology changes survive service restarts,
+- the current inventory and topology are rediscovered after service restarts,
 - communication and data freshness are visible,
 - the service reconnects automatically after gateway or network failure,
 - only allowlisted read-only commands are executed,
