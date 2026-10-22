@@ -14,11 +14,19 @@ from pylontech_console.parsers import (
 )
 
 CAPTURES = Path(__file__).parents[3] / "captures" / "US2000C" / "B67.5.0"
+US5000_CAPTURES = (
+    Path(__file__).parents[3] / "captures" / "US5000" / "B69.26.0.0"
+)
 NOW = datetime(2026, 7, 19, 12, tzinfo=timezone.utc)
 
 
 def payload(name: str) -> str:
     text = (CAPTURES / name).read_text(encoding="ascii")
+    return text.split("@", maxsplit=1)[1].split("$$", maxsplit=1)[0].strip()
+
+
+def us5000_payload(name: str) -> str:
+    text = (US5000_CAPTURES / name).read_text(encoding="ascii")
     return text.split("@", maxsplit=1)[1].split("$$", maxsplit=1)[0].strip()
 
 
@@ -85,6 +93,16 @@ def test_parses_every_bat_capture(position: int) -> None:
     assert len(result.cells) == 15
     assert [cell.index for cell in result.cells] == list(range(15))
     assert all(cell.current_ma < 0 for cell in result.cells)
+
+
+@pytest.mark.parametrize("position", (1, 2))
+def test_parses_us5000_bat_capture(position: int) -> None:
+    result = parse_bat(us5000_payload(f"bat-{position}.txt"), NOW, position)
+
+    assert result.position == position
+    assert len(result.cells) == 15
+    assert [cell.index for cell in result.cells] == list(range(15))
+    assert all(cell.soc_percent == 60 for cell in result.cells)
 
 
 @pytest.mark.parametrize(

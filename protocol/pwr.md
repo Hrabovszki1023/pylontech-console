@@ -8,6 +8,10 @@ Verified on:
 - Board version: V10R04
 - Main firmware: B67.5.0
 - Software version: V1.7
+- Device: Pylontech US5000
+- Board version: V10R04 / NF4.E3
+- Main firmware: B69.26.0.0
+- Software version: V2.3
 
 ## Purpose
 
@@ -71,6 +75,21 @@ The verified response contains addresses `1` through `16`. Present modules conta
 | `MosTempr` | Numeric or `-` | MOSFET temperature; likely `mC` | inferred |
 | `M.T.St` | `Normal` or `-` | MOSFET-temperature state | inferred |
 
+The verified US5000 response inserts the following columns among the common
+columns instead of appending them at the end:
+
+| Column | Observed content | Preliminary interpretation |
+|---|---:|---|
+| `Tlow.Id` | `8` | Sensor index associated with `Tlow` |
+| `Thigh.Id` | `0` | Sensor index associated with `Thigh` |
+| `Vlow.Id` | `0` | Cell index associated with `Vlow` |
+| `Vhigh.Id` | `1` | Cell index associated with `Vhigh` |
+| `SysAlarm.St` | `Normal` | System-alarm state |
+
+Parsers must locate common values by their header names and preserve additional
+columns. They must not require model-specific columns to appear only after the
+common columns.
+
 ### Present and absent modules
 
 In the verified capture:
@@ -129,7 +148,9 @@ The indexed form returns a separator-delimited key/value block for one module ra
 
 ## General parsing constraints
 
-- For the unindexed table, parse rows by the fixed header order.
+- For the unindexed table, map values by the reported header. Require the common
+  columns in their documented relative order, while allowing model-specific
+  columns between them or after them.
 - The `Time` field contains two whitespace-delimited tokens.
 - Accept numeric and placeholder (`-`) values where observed.
 - Treat unknown state strings as valid unknown enum values.
@@ -141,6 +162,7 @@ The indexed form returns a separator-delimited key/value block for one module ra
 ```text
 captures/US2000C/B67.5.0/pwr.txt
 captures/US2000C/B67.5.0/pwr-1.txt
+captures/US5000/B69.26.0.0/pwr.txt
 ```
 
 ## Open questions

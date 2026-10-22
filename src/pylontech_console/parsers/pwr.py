@@ -63,76 +63,116 @@ def _parse_device_time(value: str) -> datetime | None:
         raise PwrParserError(f"invalid Time value: {value!r}") from error
 
 
-def _logical_values(line: str) -> list[str]:
+def _logical_values(line: str, header: tuple[str, ...]) -> list[str]:
     tokens = line.split()
-    if len(tokens) < 16:
+    if len(tokens) < 2:
         raise PwrParserError("pwr row has too few values")
 
-    if tokens[13] == "-":
-        time_value = "-"
-        tail_start = 14
-    else:
-        if len(tokens) < 19:
+    time_index = header.index("Time")
+    if len(tokens) <= time_index:
+        raise PwrParserError("pwr row has too few values")
+    if tokens[time_index] != "-":
+        if len(tokens) <= time_index + 1:
             raise PwrParserError("pwr row has too few values")
-        time_value = f"{tokens[13]} {tokens[14]}"
-        tail_start = 15
+        tokens = (
+            tokens[:time_index]
+            + [f"{tokens[time_index]} {tokens[time_index + 1]}"]
+            + tokens[time_index + 2 :]
+        )
+    return tokens
 
-    values = tokens[:13] + [time_value] + tokens[tail_start:]
-    if len(values) == 16 and values[8] == "Absent":
-        values.extend(("-", "-"))
-    return values
 
-
-def _parse_position(
-    line: str,
-    extra_columns: tuple[str, ...],
-) -> PwrPosition:
-    values = _logical_values(line)
-    expected_value_count = len(EXPECTED_COLUMNS) + len(extra_columns)
-    if len(values) < expected_value_count:
-        raise PwrParserError("pwr row has too few values")
-    if len(values) > expected_value_count:
-        raise PwrParserError("pwr row has values without matching columns")
-
+def _position_number(value: str) -> int:
     try:
-        position = int(values[0])
+        position = int(value)
     except ValueError as error:
-        raise PwrParserError(f"invalid Power value: {values[0]!r}") from error
+        raise PwrParserError(f"invalid Power value: {value!r}") from error
     if not 1 <= position <= 16:
         raise PwrParserError(f"Power value outside 1..16: {position}")
+    return position
 
-    base_status = values[8]
-    present = base_status != "Absent"
-    if not present and any(
-        value != "-" for index, value in enumerate(values[1:18], start=1) if index != 8
+
+def _parse_absent_position(
+    tokens: list[str],
+    extra_columns: tuple[str, ...],
+) -> PwrPosition:
+    if len(tokens) < 9:
+        raise PwrParserError("pwr row has too few values")
+    position = _position_number(tokens[0])
+    if tokens.count("Absent") != 1 or any(
+        value not in {"-", "Absent"} for value in tokens[1:]
     ):
         raise PwrParserError(
             f"Absent position {position} contains a non-placeholder value",
         )
+    return PwrPosition(
+        position=position,
+        present=False,
+        voltage_mv=None,
+        current_ma=None,
+        temperature_mc=None,
+        lowest_temperature_mc=None,
+        highest_temperature_mc=None,
+        lowest_cell_voltage_mv=None,
+        highest_cell_voltage_mv=None,
+        base_status="Absent",
+        voltage_status=None,
+        current_status=None,
+        temperature_status=None,
+        soc_percent=None,
+        device_time=None,
+        battery_voltage_status=None,
+        battery_temperature_status=None,
+        mosfet_temperature_mc=None,
+        mosfet_temperature_status=None,
+        extra_fields=MappingProxyType(
+            {column: "-" for column in extra_columns},
+        ),
+    )
+
+
+def _parse_position(
+    line: str,
+    header: tuple[str, ...],
+    extra_columns: tuple[str, ...],
+) -> PwrPosition:
+    tokens = line.split()
+    if "Absent" in tokens:
+        return _parse_absent_position(tokens, extra_columns)
+
+    values = _logical_values(line, header)
+    if len(values) < len(header):
+        raise PwrParserError("pwr row has too few values")
+    if len(values) > len(header):
+        raise PwrParserError("pwr row has values without matching columns")
+    fields = dict(zip(header, values, strict=True))
+
+    position = _position_number(fields["Power"])
+    base_status = fields["Base.St"]
 
     extra_fields = MappingProxyType(
-        dict(zip(extra_columns, values[len(EXPECTED_COLUMNS) :], strict=True)),
+        {column: fields[column] for column in extra_columns},
     )
     return PwrPosition(
         position=position,
-        present=present,
-        voltage_mv=_optional_int(values[1], "Volt"),
-        current_ma=_optional_int(values[2], "Curr"),
-        temperature_mc=_optional_int(values[3], "Tempr"),
-        lowest_temperature_mc=_optional_int(values[4], "Tlow"),
-        highest_temperature_mc=_optional_int(values[5], "Thigh"),
-        lowest_cell_voltage_mv=_optional_int(values[6], "Vlow"),
-        highest_cell_voltage_mv=_optional_int(values[7], "Vhigh"),
+        present=True,
+        voltage_mv=_optional_int(fields["Volt"], "Volt"),
+        current_ma=_optional_int(fields["Curr"], "Curr"),
+        temperature_mc=_optional_int(fields["Tempr"], "Tempr"),
+        lowest_temperature_mc=_optional_int(fields["Tlow"], "Tlow"),
+        highest_temperature_mc=_optional_int(fields["Thigh"], "Thigh"),
+        lowest_cell_voltage_mv=_optional_int(fields["Vlow"], "Vlow"),
+        highest_cell_voltage_mv=_optional_int(fields["Vhigh"], "Vhigh"),
         base_status=base_status,
-        voltage_status=_optional_text(values[9]),
-        current_status=_optional_text(values[10]),
-        temperature_status=_optional_text(values[11]),
-        soc_percent=_parse_soc(values[12]),
-        device_time=_parse_device_time(values[13]),
-        battery_voltage_status=_optional_text(values[14]),
-        battery_temperature_status=_optional_text(values[15]),
-        mosfet_temperature_mc=_optional_int(values[16], "MosTempr"),
-        mosfet_temperature_status=_optional_text(values[17]),
+        voltage_status=_optional_text(fields["Volt.St"]),
+        current_status=_optional_text(fields["Curr.St"]),
+        temperature_status=_optional_text(fields["Temp.St"]),
+        soc_percent=_parse_soc(fields["Coulomb"]),
+        device_time=_parse_device_time(fields["Time"]),
+        battery_voltage_status=_optional_text(fields["B.V.St"]),
+        battery_temperature_status=_optional_text(fields["B.T.St"]),
+        mosfet_temperature_mc=_optional_int(fields["MosTempr"], "MosTempr"),
+        mosfet_temperature_status=_optional_text(fields["M.T.St"]),
         extra_fields=extra_fields,
     )
 
@@ -158,14 +198,20 @@ def parse_pwr(payload: str, received_at: datetime) -> PwrSummary:
         )
 
     header = tuple(table_lines[0].split())
-    if header[: len(EXPECTED_COLUMNS)] != EXPECTED_COLUMNS:
+    required_columns = tuple(
+        column for column in header if column in EXPECTED_COLUMNS
+    )
+    if required_columns != EXPECTED_COLUMNS:
         raise PwrParserError("expected pwr table header is missing")
-    extra_columns = header[len(EXPECTED_COLUMNS) :]
-    if len(set(extra_columns)) != len(extra_columns):
-        raise PwrParserError("additional pwr column names must be unique")
+    if len(set(header)) != len(header):
+        raise PwrParserError("pwr column names must be unique")
+    extra_columns = tuple(
+        column for column in header if column not in EXPECTED_COLUMNS
+    )
 
     positions = tuple(
-        _parse_position(line, extra_columns) for line in table_lines[1:]
+        _parse_position(line, header, extra_columns)
+        for line in table_lines[1:]
     )
     if not positions:
         raise PwrParserError("pwr payload contains no position rows")
