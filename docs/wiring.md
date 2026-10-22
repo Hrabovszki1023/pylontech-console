@@ -1,19 +1,24 @@
 # Pylontech Console Cable
 
-This document describes the tested cable used to connect a Pylontech US2000C console port to the RS232 interface of a Waveshare serial device server.
+This document describes the tested cable used to connect Pylontech US2000C
+and US5000 console ports to the RS232 interface of a Waveshare serial device
+server.
 
 > [!WARNING]
 > The RJ45 console connector on the battery is **not Ethernet**. Do not connect it to an Ethernet switch, router, or network interface.
 
 ## Tested setup
 
-- Battery: Pylontech US2000C
-- Main software version: B67.5.0
+- Batteries: Pylontech US2000C and US5000
+- Verified main software versions: B67.5.0 and B69.26.0.0
 - Serial device server: Waveshare RS232/485/422 TO POE ETH (B)
 - Interface: RS232
 - Serial settings: 115200 baud, 8 data bits, no parity, 1 stop bit, no flow control
 
-The cable and settings were verified by successfully executing the console commands `help`, `info`, `pwr`, `bat`, `stat`, and `time`.
+The cable and settings were verified on the US2000C rack by successfully
+executing `help`, `info`, `pwr`, `bat`, `stat`, and `time`. They were verified
+again on the US5000 rack through authenticated `info`, `pwr`, and `bat`
+acquisition for both modules.
 
 See [waveshare.md](waveshare.md) for the verified serial device server,
 installation photographs and network-security guidance.

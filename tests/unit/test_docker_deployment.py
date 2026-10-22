@@ -65,6 +65,8 @@ def test_readme_documents_public_lifecycle() -> None:
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "cp .env.example .env" in readme
+    assert "install -d -m 700 secrets" in readme
+    assert "chmod 644 secrets/pylontech-console-password.txt" in readme
     assert "docker compose pull" in readme
     assert "docker compose up -d" in readme
     assert "docker compose down" in readme
