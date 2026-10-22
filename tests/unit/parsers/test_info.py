@@ -8,12 +8,20 @@ from pylontech_console.parsers.info import InfoParserError, parse_info
 CAPTURE_DIRECTORY = (
     Path(__file__).parents[3] / "captures" / "US2000C" / "B67.5.0"
 )
+US5000_CAPTURE_DIRECTORY = (
+    Path(__file__).parents[3] / "captures" / "US5000" / "B69.26.0.0"
+)
 RECEIVED_AT = datetime(2026, 7, 17, 3, 20, 57, tzinfo=timezone(timedelta(hours=2)))
 
 
 def capture_payload(name: str) -> str:
     capture = (CAPTURE_DIRECTORY / name).read_text(encoding="ascii")
     return capture.split("@", maxsplit=1)[1].split("$$", maxsplit=1)[0].strip()
+
+
+def us5000_capture_payload(name: str) -> str:
+    capture = (US5000_CAPTURE_DIRECTORY / name).read_text(encoding="ascii")
+    return capture.rsplit("@", maxsplit=1)[1].split("$$", maxsplit=1)[0].strip()
 
 
 def indexed_payload() -> str:
@@ -77,6 +85,41 @@ def test_parses_local_anonymized_capture() -> None:
 
     assert result.position == 1
     assert result.barcode == "<REDACTED>"
+
+
+@pytest.mark.parametrize(
+    ("name", "position", "barcode"),
+    [
+        ("info-1.txt", 1, "<redacted-module-1>"),
+        ("info-2.txt", 2, "<redacted-module-2>"),
+    ],
+)
+def test_parses_us5000_capture(
+    name: str,
+    position: int,
+    barcode: str,
+) -> None:
+    result = parse_info(
+        us5000_capture_payload(name),
+        RECEIVED_AT,
+        expected_position=position,
+    )
+
+    assert result.position == position
+    assert result.barcode == barcode
+    assert result.device_name == "US5000"
+    assert result.main_software_version == "B69.26.0.0"
+    assert result.specification == "48V/100AH"
+    assert result.cell_count == 15
+    assert result.max_discharge_current_ma == -105000
+    assert result.max_charge_current_ma == 105000
+    assert dict(result.extra_fields) == {
+        "Board": "NF4.E3",
+        "Device Test Time": "2000-00-00 00:00:00",
+        "Customer Ver.ID": "STD",
+        "Last Idle Days": "0",
+        "Max Idle Days": "0",
+    }
 
 
 def test_accepts_whitespace_variants() -> None:

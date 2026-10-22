@@ -1,0 +1,32 @@
+
+pylon>login debug
+@
+Command completed successfully
+$$
+pylon_debug>info
+@
+Device address      : 1
+Manufacturer        : Pylon
+Device name         : US5000
+Board version       : V10R04
+Board               : NF4.E3
+Main Soft version   : B69.26.0.0
+Soft  version       : V2.3
+Boot  version       : V1.0
+Comm version        : V2.0
+Release Date        : 25-07-07
+Barcode             : <redacted-module-1>
+
+Device Test Time    : 2000-00-00 00:00:00
+Specification       : 48V/100AH
+Cell Number         : 15
+Max Dischg Curr     : -105000mA
+Max Charge Curr     : 105000mA
+EPONPort rate       : 1200
+Console Port rate   : 115200
+Customer Ver.ID     : STD   
+Last Idle Days      : 0
+Max Idle Days       : 0
+Command completed successfully
+$$
+pylon_debug>

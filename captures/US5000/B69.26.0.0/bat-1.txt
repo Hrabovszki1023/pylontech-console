@@ -1,0 +1,21 @@
+bat 1
+@
+Battery  Volt     Curr     Tempr    Base State   Volt. State  Curr. State  Temp. State  SOC          Coulomb      BAL         
+0        3294     0        19700    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+1        3295     0        19700    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+2        3294     0        19700    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+3        3295     0        19700    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+4        3295     0        19600    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+5        3295     0        19600    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+6        3295     0        19600    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+7        3295     0        19600    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+8        3295     0        19300    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+9        3295     0        19300    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+10       3295     0        19300    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+11       3295     0        19300    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+12       3295     0        19600    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+13       3295     0        19600    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+14       3295     0        19600    Idle         Normal       Normal       Normal       60%         60020 mAH      N
+Command completed successfully
+$$
+pylon_debug>

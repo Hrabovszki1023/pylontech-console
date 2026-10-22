@@ -8,6 +8,9 @@ from pylontech_console.parsers.pwr import PwrParserError, parse_pwr
 CAPTURE = (
     Path(__file__).parents[3] / "captures" / "US2000C" / "B67.5.0" / "pwr.txt"
 )
+US5000_CAPTURE = (
+    Path(__file__).parents[3] / "captures" / "US5000" / "B69.26.0.0" / "pwr.txt"
+)
 HEADER = (
     "Power Volt Curr Tempr Tlow Thigh Vlow Vhigh Base.St Volt.St Curr.St "
     "Temp.St Coulomb Time B.V.St B.T.St MosTempr M.T.St"
@@ -26,6 +29,11 @@ def payload_with(*rows: str, header: str = HEADER) -> str:
 
 def canonical_payload() -> str:
     capture = CAPTURE.read_text(encoding="ascii")
+    return capture.split("@", maxsplit=1)[1].split("$$", maxsplit=1)[0].strip()
+
+
+def us5000_payload() -> str:
+    capture = US5000_CAPTURE.read_text(encoding="ascii")
     return capture.split("@", maxsplit=1)[1].split("$$", maxsplit=1)[0].strip()
 
 
@@ -56,6 +64,33 @@ def test_parses_canonical_capture() -> None:
     assert absent.current_ma is None
     assert absent.device_time is None
     assert absent.voltage_status is None
+
+
+def test_parses_us5000_capture_with_interleaved_columns() -> None:
+    result = parse_pwr(us5000_payload(), RECEIVED_AT)
+
+    assert len(result.positions) == 16
+    assert sum(position.present for position in result.positions) == 2
+    first = result.positions[0]
+    assert first.position == 1
+    assert first.voltage_mv == 49423
+    assert first.lowest_temperature_mc == 19300
+    assert first.highest_temperature_mc == 19700
+    assert first.lowest_cell_voltage_mv == 3294
+    assert first.highest_cell_voltage_mv == 3295
+    assert first.soc_percent == 60
+    assert dict(first.extra_fields) == {
+        "Tlow.Id": "8",
+        "Thigh.Id": "0",
+        "Vlow.Id": "0",
+        "Vhigh.Id": "1",
+        "SysAlarm.St": "Normal",
+    }
+
+    absent = result.positions[2]
+    assert not absent.present
+    assert absent.base_status == "Absent"
+    assert all(value == "-" for value in absent.extra_fields.values())
 
 
 def test_normalizes_one_shared_receive_time_to_utc() -> None:
