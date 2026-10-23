@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from pylontech_console.transport.tcp import AsyncTcpTransport
+from pylontech_console.transport.base import AsyncTransport
 
 if TYPE_CHECKING:
     from pylontech_console.console_session import ConsoleSessionMode
@@ -223,11 +223,11 @@ async def read_framed_ascii_payload(
 
 
 class FramedConsoleClient:
-    """Execute one framed console exchange over an owned TCP transport."""
+    """Execute one framed console exchange over an owned transport."""
 
     def __init__(
         self,
-        transport: AsyncTcpTransport,
+        transport: AsyncTransport,
         response_timeout_seconds: float,
     ) -> None:
         self._transport = transport

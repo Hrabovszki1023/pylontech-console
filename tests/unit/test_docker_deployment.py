@@ -37,6 +37,26 @@ def test_development_compose_restores_local_build() -> None:
     assert service["build"]["context"] == "."
 
 
+def test_serial_compose_maps_only_the_selected_device() -> None:
+    document = yaml.safe_load(
+        (PROJECT_ROOT / "docker-compose.serial.yml").read_text(encoding="utf-8"),
+    )
+    service = document["services"]["pylontech-console"]
+
+    assert service["environment"]["PYLONTECH_TRANSPORT"] == "serial"
+    assert service["environment"]["PYLONTECH_SERIAL_DEVICE"] == (
+        "/dev/pylontech-console"
+    )
+    assert service["devices"] == [
+        "${PYLONTECH_SERIAL_DEVICE_HOST:?set the /dev/serial/by-id path in .env}:"
+        "/dev/pylontech-console",
+    ]
+    assert service["group_add"] == [
+        "${PYLONTECH_SERIAL_GID:?set the serial device group ID in .env}",
+    ]
+    assert "privileged" not in service
+
+
 def test_image_has_non_root_runtime_and_http_healthcheck() -> None:
     dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
 
@@ -49,6 +69,8 @@ def test_public_environment_example_contains_no_password() -> None:
     example = (PROJECT_ROOT / ".env.example").read_text(encoding="utf-8")
 
     assert "PYLONTECH_WAVESHARE_HOST=" in example
+    assert "PYLONTECH_TRANSPORT=tcp" in example
+    assert "PYLONTECH_SERIAL_DEVICE=/dev/pylontech-console" in example
     assert "PYLONTECH_HTTP_PUBLISHED_PORT=8001" in example
     assert "PYLONTECH_MQTT_ENABLED=false" in example
     assert "PYLONTECH_CONSOLE_LOGIN_PASSWORD=" not in example
