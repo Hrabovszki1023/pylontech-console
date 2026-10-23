@@ -73,28 +73,34 @@ the battery console connector is not Ethernet.
 See [waveshare.md](waveshare.md) for photographs, the deployment rationale and
 the required network-security boundary.
 
-## Verified deployment platform
+## Verified deployment platforms
+
+### Proxmox Docker host
 
 - Docker Engine with Docker Compose;
 - Proxmox-hosted dedicated Docker server;
-- published container architecture: `linux/amd64`;
+- published `linux/amd64` container image;
 - optional MQTT broker provided by an ioBroker MQTT adapter.
 
-## USB serial reference pending field verification
+### Raspberry Pi with direct USB serial
 
-The implemented direct-serial deployment targets:
+The direct-serial deployment was verified on 2026-10-23 with:
 
-- Raspberry Pi 4 or 5 with a 64-bit Linux operating system;
-- the published `linux/arm64` container image;
-- a genuine USB-to-RS232 adapter exposed below `/dev/serial/by-id/`;
+- Raspberry Pi 4 Model B with 2 GB RAM and a 32 GB microSD card;
+- Raspberry Pi OS Lite 64-bit / Debian 13 (`trixie`);
+- PoE HAT and wired Ethernet;
+- published `linux/arm64` container image;
+- FTDI FT231X USB-to-RS232 Pylontech console cable;
+- stable `/dev/serial/by-id/` device mapping;
 - 115200 baud, 8 data bits, no parity, 1 stop bit and no flow control;
-- non-privileged Docker device mapping and supplemental group access.
+- non-root, non-privileged Docker operation with supplemental `dialout` group;
+- two Pylontech US5000 modules and all 30 cell measurements;
+- successful Docker and container autostart after moving and rebooting the Pi;
+- authenticated debug session and an online health result without acquisition
+  errors.
 
-The planned first hardware acceptance uses a Raspberry Pi 4 Model B with PoE
-HAT and a Pylontech US2000C/US3000C/US5000 console cable advertised with an
-FTDI FT231XS chipset. This records the test target, not a completed
-compatibility claim. It shall move to the verified section only after the
-hardware acceptance checklist in issue #62 succeeds.
+See [raspberry-pi.md](raspberry-pi.md) for the reproduced installation,
+deployment, verification and troubleshooting procedure.
 
 ## Not yet verified
 
@@ -102,8 +108,8 @@ No compatibility claim is currently made for:
 
 - Pylontech models other than US2000, US2000C and US5000;
 - racks with a cell count other than 15 cells per module;
-- direct USB serial operation until the Raspberry Pi hardware acceptance is
-  complete;
+- Raspberry Pi models other than Raspberry Pi 4;
+- direct USB serial adapters other than the tested FTDI FT231X cable;
 - container architectures other than `linux/amd64` and `linux/arm64`;
 - direct CAN, RS485 battery protocol or inverter communication.
 
