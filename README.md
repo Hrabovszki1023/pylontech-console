@@ -69,16 +69,18 @@ Development starts with:
 - Core protocol documented.
 - Architecture defined.
 - Production service implemented with REST, Web UI and MQTT.
-- Running on a five-module mixed Pylontech US2000/US2000C rack.
+- Verified on a five-module mixed Pylontech US2000/US2000C rack and a
+  two-module Pylontech US5000 rack.
 - Published `linux/amd64` Docker images available from Docker Hub.
 
 ## Tested hardware
 
-The verified reference installation uses:
+The verified installations include:
 
 - two Pylontech US2000 modules;
 - three Pylontech US2000C modules;
-- 15 cells per module and 75 cells in total;
+- two Pylontech US5000 modules running main firmware `B69.26.0.0`;
+- 15 cells per module, with all module and cell data verified;
 - a Waveshare RS232/485/422 TO POE ETH (B) serial device server;
 - Docker on a Proxmox-hosted `linux/amd64` server;
 - optional MQTT publishing to ioBroker.
@@ -221,8 +223,9 @@ required on a `linux/amd64` host.
 git clone https://github.com/Hrabovszki1023/pylontech-console.git
 cd pylontech-console
 cp .env.example .env
-mkdir -p secrets
+install -d -m 700 secrets
 printf '%s\n' '<console-password>' > secrets/pylontech-console-password.txt
+chmod 644 secrets/pylontech-console-password.txt
 ```
 
 Edit `.env` and set at least the address of the Waveshare gateway:
@@ -235,7 +238,10 @@ PYLONTECH_IMAGE_TAG=main
 
 The password file must contain only the password accepted by the Pylontech
 `login` command. Do not commit `.env` or anything below `secrets/`; both are
-ignored by Git.
+ignored by Git. The host-side `secrets` directory remains accessible only to
+root (`700`). The password file itself must be readable (`644`) because the
+published container deliberately runs as the non-root `pylontech` user and
+Docker Compose bind-mounts the local secret file into the container.
 
 Pull and start the container:
 

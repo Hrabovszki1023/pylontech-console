@@ -699,6 +699,13 @@ The console login password shall be mounted as a read-only Compose secret by
 default. The public example configuration shall contain no real credential.
 MQTT shall remain disabled by default.
 
+For the local-file Compose secret, the public installation instructions shall
+protect the host-side secret directory with mode `700` and make the mounted
+file readable with mode `644`. The file permission is required because the
+published image runs as the non-root `pylontech` user; confidentiality on the
+host is provided by the root-only parent directory. The secret shall remain
+excluded from Git and the Docker build context.
+
 The image-level health check shall verify only that the local HTTP service and
 `GET /api/v1/health` respond. Battery, Waveshare or MQTT state reported inside
 the health payload shall not make the container unhealthy and shall not trigger

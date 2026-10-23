@@ -183,7 +183,7 @@ Verify the built Docker image:
 
 Three categories of test data are used:
 
-1. verified real captures from the current US2000C rack,
+1. verified real captures from the US2000C and US5000 racks,
 2. deliberately modified fixtures for edge and error cases,
 3. live responses from the real rack for integration acceptance.
 
