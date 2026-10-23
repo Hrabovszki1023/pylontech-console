@@ -42,7 +42,8 @@ for stable version tags.
 
 Version 0.1 includes:
 
-- TCP communication with the Waveshare serial-to-Ethernet gateway,
+- selectable console transport through either the Waveshare TCP gateway or a
+  directly attached USB-to-RS232 adapter,
 - automatic rack and module discovery,
 - barcode-based stable module identity,
 - cyclic acquisition of rack, module and cell data,
@@ -198,7 +199,7 @@ Discovery and cyclic process-data polling shall be separate concerns.
 
 At service startup:
 
-1. establish the TCP connection,
+1. establish the configured TCP or serial transport connection,
 2. determine the console mode and establish an authenticated debug session as
    defined by the transport contract,
 3. execute `pwr`,
@@ -254,9 +255,36 @@ getpwr
 
 ## Transport contract
 
-The transport shall connect to the Waveshare gateway through TCP using configurable host and port values.
+The application shall expose one transport-independent console exchange
+boundary and shall support exactly these transport modes:
 
-The Waveshare IP address and port shall not be hard-coded.
+```text
+tcp
+serial
+```
+
+The selected mode shall be configured explicitly. Existing installations shall
+remain backward compatible by defaulting to `tcp`.
+
+In `tcp` mode, the transport shall connect to the Waveshare gateway through
+configurable host and port values. The Waveshare IP address and port shall not
+be hard-coded.
+
+In `serial` mode, the transport shall open a locally attached Linux character
+device. The supported serial settings are 115200 baud, 8 data bits, no parity,
+1 stop bit and no hardware or software flow control. The device path shall be
+configurable; Docker deployments shall map a stable host path below
+`/dev/serial/by-id/` to `/dev/pylontech-console` inside the container.
+
+The serial deployment requires a genuine USB-to-RS232 adapter wired for the
+Pylontech RJ45 console interface. USB-to-TTL and USB-to-RS485 adapters are
+outside the supported hardware boundary. The RJ45 console connector is not
+Ethernet and shall never be connected to a network port.
+
+Framing, strict ASCII handling, command serialization, authentication, prompt
+validation, timeouts, response-size limits, reconnect policy, credential
+redaction and the read-only command allowlist shall be identical for both
+transport modes.
 
 The console transport uses these constants:
 
@@ -346,7 +374,7 @@ in debug mode contains `Quit current mode`, reports failure and still ends at
 `pylon_debug>`. The service shall therefore never use repeated login as a mode
 probe.
 
-Every TCP reconnect creates a new unverified application session. The service
+Every transport reconnect creates a new unverified application session. The service
 shall repeat mode determination and authentication before resuming polling,
 even if the gateway or serial device may have retained a previous console
 mode.
@@ -369,11 +397,20 @@ Version 0.1 shall support configuration through a file and/or environment variab
 Minimum configuration parameters:
 
 ```yaml
+transport:
+  mode: tcp  # tcp or serial
+  connect_timeout_seconds: 5
+  response_timeout_seconds: 5
+
 waveshare:
   host: 192.168.20.211
   port: 4196
-  connect_timeout_seconds: 5
-  response_timeout_seconds: 5
+
+serial:
+  device: /dev/pylontech-console
+  baudrate: 115200
+
+console:
   login_password_file: /run/secrets/pylontech_console_password
 
 polling:
@@ -389,7 +426,9 @@ mqtt:
   topic_prefix: pylontech
 ```
 
-Configuration values shall be validated on startup.
+Configuration values shall be validated on startup. Waveshare host and port
+are required only in `tcp` mode. The serial device is required only in
+`serial` mode. Unsupported transport values shall fail startup.
 
 The console login password is mandatory. It shall be supplied by exactly one
 of:
@@ -606,7 +645,7 @@ offline
 
 Health information shall include:
 
-- Waveshare connectivity,
+- selected console transport and connectivity,
 - non-secret console session mode and authenticated state,
 - last successful response time,
 - current polling delay,
@@ -619,8 +658,8 @@ Health information shall include:
 The service shall automatically recover from:
 
 - Waveshare restart,
-- TCP disconnect,
-- network interruption,
+- TCP disconnect or network interruption in `tcp` mode,
+- serial disconnect or I/O failure in `serial` mode,
 - timeout,
 - malformed or incomplete response,
 - MQTT broker interruption.
@@ -674,11 +713,14 @@ Threshold-based alarms shall be configurable and shall not be presented as manuf
 
 ## Deployment
 
-Version 0.1 shall be deployable as a Docker container suitable for Proxmox-hosted operation.
+Version 0.1 shall be deployable as a Docker container on a Proxmox-hosted
+`linux/amd64` system and on a Raspberry Pi 4 or 5 running a 64-bit Linux
+distribution. Raspberry Pi OS Lite 64-bit is the reference Raspberry Pi host.
+A direct host-level Python installation is not an official deployment path.
 
 The deployment shall provide:
 
-- non-privileged execution,
+- non-root, non-privileged execution,
 - runtime configuration through validated environment variables and/or files,
 - no required inventory database or persistent inventory volume,
 - container health check,
@@ -686,11 +728,16 @@ The deployment shall provide:
 - structured application logs,
 - configurable log level.
 
-The repository's default `docker-compose.yml` shall be the public deployment
-path and shall pull `hrabovszki/pylontech-console` rather than build source
-locally. The selected image tag shall be configurable and shall default to
-`main` until the first versioned beta is published. A separate Compose override
-shall provide the local source-build workflow for development.
+The repository's default `docker-compose.yml` shall be the public TCP
+deployment path and shall pull `hrabovszki/pylontech-console` rather than
+build source locally. A documented Compose override or example shall provide
+the serial deployment. The selected image tag shall be configurable and shall
+default to `main` until the first versioned beta is published. A separate
+Compose override shall provide the local source-build workflow for development.
+
+The same published image tags shall provide `linux/amd64` and `linux/arm64`
+variants through one multi-platform manifest. Initial Raspberry Pi support
+requires a 64-bit operating system; 32-bit ARM is outside Version 0.1.
 
 The public container shall listen internally on port `8000`. Compose shall map
 that port to a separately configurable host port whose default is `8001`.
@@ -721,8 +768,17 @@ The Waveshare raw TCP console is unencrypted and shall be deployed on a
 dedicated isolated technical network or VLAN. Firewall policy shall permit
 TCP port 4196 only from the Docker host running this service. Console
 authentication is a firmware mode transition, not a network security
-boundary. A direct USB/serial transport for a locally attached Raspberry Pi or
-Docker host is deferred to a separate future issue.
+boundary.
+
+A serial Docker deployment shall grant only the configured adapter through
+Compose `devices` and the required supplemental device group through
+`group_add`; it shall not use `privileged: true`. Exactly one process may own
+the Pylontech console connection at a time, regardless of transport.
+
+For the initial serial contract, the USB adapter must be present when the
+container starts. After it is unplugged, replaced or re-enumerated, restarting
+or recreating the container may be required. Transparent USB hotplug recovery
+is outside Version 0.1.
 
 ## Testing contract
 
@@ -745,7 +801,12 @@ Automated tests shall cover at minimum:
 - duplicate barcode detection,
 - unknown additional fields,
 - incomplete response framing,
-- timeout and reconnect behavior,
+- timeout and reconnect behavior for both TCP and serial transports,
+- conditional transport configuration and backward-compatible TCP selection,
+- deterministic serial exchange, disconnect and reconnect tests using a Linux
+  pseudo-terminal or equivalent fixture,
+- the serial Compose device and supplemental-group contract,
+- the `linux/amd64` and `linux/arm64` publication contract,
 - prompt parsing and `user`, `debug` and `unknown` mode classification,
 - already-authenticated startup without repeated login,
 - user-mode capability rejection followed by successful authentication,
@@ -773,7 +834,10 @@ Version 0.1 is complete when all of the following are true:
 - the same data is available through a read-only REST API,
 - the current inventory and topology are rediscovered after service restarts,
 - communication and data freshness are visible,
-- the service reconnects automatically after gateway or network failure,
+- the service reconnects automatically after a supported transport failure,
 - only allowlisted read-only commands are executed,
 - all required parsers are covered by automated fixture-based tests,
-- the service runs as a health-checked Docker container.
+- the service runs as a health-checked Docker container,
+- one published image tag is usable on both `linux/amd64` and `linux/arm64`,
+- the serial deployment runs without a privileged container and acquires the
+  same rack, module and cell data as the TCP deployment.
