@@ -9,6 +9,8 @@ Available documents:
 - `wiring.md` — RJ45 console and DB9 pinout;
 - `waveshare.md` — verified RS232-over-TCP device, installation photographs,
   deployment rationale and network-security boundary;
+- `raspberry-pi.md` — complete Raspberry Pi OS, Docker and direct USB-to-RS232
+  installation and verification procedure.
 
 Planned documents:
 
