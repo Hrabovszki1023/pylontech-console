@@ -7,10 +7,13 @@ from fastapi import FastAPI
 
 from pylontech_console.commands import ReadOnlyPylontechClient
 from pylontech_console.config import (
+    TransportMode,
     load_console_settings,
     load_http_settings,
     load_mqtt_settings,
     load_polling_settings,
+    load_serial_settings,
+    load_transport_settings,
     load_waveshare_settings,
     load_web_settings,
 )
@@ -26,6 +29,8 @@ from pylontech_console.outputs.api.query import StateQuery
 from pylontech_console.outputs.mqtt import MqttPublisher, SnapshotSerializer
 from pylontech_console.outputs.web import mount_web
 from pylontech_console.polling import PollingService, utc_now
+from pylontech_console.transport.base import AsyncTransport
+from pylontech_console.transport.serial import AsyncSerialTransport
 from pylontech_console.transport.tcp import AsyncTcpTransport
 from pylontech_console.version import BuildIdentity, load_build_identity
 
@@ -35,7 +40,7 @@ LOGGER = logging.getLogger(__name__)
 class ServiceRuntime:
     def __init__(
         self,
-        transport: AsyncTcpTransport,
+        transport: AsyncTransport,
         console: AuthenticatedConsoleClient,
         polling: PollingService,
         mqtt: MqttPublisher,
@@ -81,20 +86,31 @@ class ServiceRuntime:
 
 def build_production_application() -> tuple[FastAPI, str, int]:
     identity = load_build_identity()
-    waveshare = load_waveshare_settings()
+    transport_settings = load_transport_settings()
     console_settings = load_console_settings()
     polling_settings = load_polling_settings()
     http = load_http_settings()
     web = load_web_settings()
     mqtt_settings = load_mqtt_settings()
-    transport = AsyncTcpTransport(
-        waveshare.host,
-        waveshare.port,
-        waveshare.connect_timeout_seconds,
-    )
+    if transport_settings.mode is TransportMode.SERIAL:
+        serial = load_serial_settings()
+        transport: AsyncTransport = AsyncSerialTransport(
+            serial.device,
+            serial.baudrate,
+            serial.connect_timeout_seconds,
+        )
+        response_timeout_seconds = serial.response_timeout_seconds
+    else:
+        waveshare = load_waveshare_settings()
+        transport = AsyncTcpTransport(
+            waveshare.host,
+            waveshare.port,
+            waveshare.connect_timeout_seconds,
+        )
+        response_timeout_seconds = waveshare.response_timeout_seconds
     framed_console = FramedConsoleClient(
         transport,
-        waveshare.response_timeout_seconds,
+        response_timeout_seconds,
     )
     console_health = ConsoleSessionHealthStore()
     console = AuthenticatedConsoleClient(
@@ -152,3 +168,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    load_serial_settings,
+    load_transport_settings,

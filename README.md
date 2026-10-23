@@ -208,16 +208,17 @@ is published only when a deliberately created Git tag such as
 `v0.1.0-beta.1` matches the public version declared by the application.
 
 The published container is configured with the same validated
-`PYLONTECH_WAVESHARE_*`, `PYLONTECH_CONSOLE_*`, `PYLONTECH_HTTP_*`,
+`PYLONTECH_TRANSPORT`, `PYLONTECH_WAVESHARE_*`, `PYLONTECH_SERIAL_*`,
+`PYLONTECH_CONSOLE_*`, `PYLONTECH_HTTP_*`,
 `PYLONTECH_WEB_*` and
 `PYLONTECH_MQTT_*` environment variables used by Docker Compose. Images
-currently target `linux/amd64`.
+target `linux/amd64` and `linux/arm64` through one multi-platform tag.
 
 ## Install with Docker Compose
 
 The public Compose setup pulls the published image; it does not require a local
 Python installation or image build. Docker Engine with the Compose plugin is
-required on a `linux/amd64` host.
+required on a 64-bit `linux/amd64` or `linux/arm64` host.
 
 ```bash
 git clone https://github.com/Hrabovszki1023/pylontech-console.git
@@ -235,6 +236,43 @@ PYLONTECH_WAVESHARE_HOST=192.168.20.211
 PYLONTECH_HTTP_PUBLISHED_PORT=8001
 PYLONTECH_IMAGE_TAG=main
 ```
+
+### Raspberry Pi with direct USB-to-RS232
+
+Raspberry Pi 4 and 5 systems shall use a 64-bit operating system. Raspberry Pi
+OS Lite 64-bit is the reference host. Connect a genuine USB-to-RS232 cable
+wired for the Pylontech RJ45 console port; USB-to-TTL and USB-to-RS485 cables
+are not compatible.
+
+Identify the stable device path and its host group ID:
+
+```bash
+ls -l /dev/serial/by-id/
+stat -c '%g' /dev/serial/by-id/<adapter>
+```
+
+Add the exact values to `.env`:
+
+```env
+PYLONTECH_TRANSPORT=serial
+PYLONTECH_SERIAL_DEVICE_HOST=/dev/serial/by-id/<adapter>
+PYLONTECH_SERIAL_GID=<numeric-group-id>
+PYLONTECH_SERIAL_BAUDRATE=115200
+```
+
+Pull and start with the serial override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.serial.yml pull
+docker compose -f docker-compose.yml -f docker-compose.serial.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.serial.yml ps
+```
+
+The container remains non-root and non-privileged. Compose maps only the
+selected adapter to `/dev/pylontech-console` and adds its numeric host group.
+The adapter must be present when the container starts. After unplugging or
+replacing it, recreate the container with the same `docker compose ... up -d`
+command. Do not open the console simultaneously with PuTTY or another client.
 
 The password file must contain only the password accepted by the Pylontech
 `login` command. Do not commit `.env` or anything below `secrets/`; both are
@@ -261,7 +299,7 @@ docker compose logs --tail=100
 ```
 
 Docker health means that the local HTTP service responds. A disconnected
-battery, Waveshare gateway or MQTT broker is reported by the application as
+battery, console transport or MQTT broker is reported by the application as
 degraded/offline but intentionally does not cause a Docker restart loop.
 
 ### Enable MQTT

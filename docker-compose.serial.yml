@@ -1,0 +1,10 @@
+services:
+  pylontech-console:
+    environment:
+      PYLONTECH_TRANSPORT: serial
+      PYLONTECH_SERIAL_DEVICE: /dev/pylontech-console
+      PYLONTECH_SERIAL_BAUDRATE: ${PYLONTECH_SERIAL_BAUDRATE:-115200}
+    devices:
+      - "${PYLONTECH_SERIAL_DEVICE_HOST:?set the /dev/serial/by-id path in .env}:/dev/pylontech-console"
+    group_add:
+      - "${PYLONTECH_SERIAL_GID:?set the serial device group ID in .env}"

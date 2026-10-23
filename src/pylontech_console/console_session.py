@@ -10,7 +10,7 @@ from pylontech_console.framing.console import (
     ConsoleExchange,
     FramedConsoleClient,
 )
-from pylontech_console.transport.tcp import AsyncTcpTransport
+from pylontech_console.transport.base import AsyncTransport
 
 SUCCESS_CONFIRMATION = "Command completed successfully"
 USER_MODE_PWRSYS_REJECTION = "Unknown command 'pwrsys' - try 'help'"
@@ -62,7 +62,7 @@ class AuthenticatedConsoleClient:
 
     def __init__(
         self,
-        transport: AsyncTcpTransport,
+        transport: AsyncTransport,
         console: FramedConsoleClient,
         password: str,
         health: ConsoleSessionHealthStore,

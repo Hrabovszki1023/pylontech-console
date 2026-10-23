@@ -29,7 +29,9 @@ def test_docker_publish_workflow_has_safe_events_and_credentials() -> None:
     assert "${{ secrets.DOCKERHUB_USERNAME }}" in text
     assert "${{ secrets.DOCKERHUB_TOKEN }}" in text
     assert "hrabovszki/pylontech-console" in text
-    assert "platforms: linux/amd64" in text
+    assert "docker/setup-qemu-action@" in text
+    assert "platforms: linux/amd64,linux/arm64" in text
+    assert "docker-compose.serial.yml config" in text
 
 
 def test_docker_publish_workflow_reserves_latest_for_stable_tags() -> None:

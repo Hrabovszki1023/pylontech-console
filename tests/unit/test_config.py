@@ -8,11 +8,16 @@ from pylontech_console.config import (
     HttpSettings,
     MqttSettings,
     PollingSettings,
+    SerialSettings,
+    TransportMode,
+    TransportSettings,
     WebSettings,
     WaveshareSettings,
-    load_polling_settings,
     load_console_settings,
     load_mqtt_settings,
+    load_polling_settings,
+    load_serial_settings,
+    load_transport_settings,
     load_waveshare_settings,
     load_web_settings,
 )
@@ -28,6 +33,39 @@ CONSOLE_ENVIRONMENT_VARIABLES = (
     "PYLONTECH_CONSOLE_LOGIN_PASSWORD_FILE",
 )
 PROJECT_ROOT = Path(__file__).parents[2]
+
+
+def test_transport_defaults_to_tcp(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PYLONTECH_TRANSPORT", raising=False)
+
+    assert load_transport_settings().mode is TransportMode.TCP
+
+
+def test_transport_loads_serial_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PYLONTECH_TRANSPORT", "serial")
+
+    assert load_transport_settings().mode is TransportMode.SERIAL
+
+
+def test_transport_rejects_unknown_mode() -> None:
+    with pytest.raises(ValidationError):
+        TransportSettings.model_validate({"PYLONTECH_TRANSPORT": "usb"})
+
+
+def test_serial_loads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PYLONTECH_SERIAL_DEVICE", "/dev/pylontech-console")
+    monkeypatch.setenv("PYLONTECH_SERIAL_BAUDRATE", "57600")
+
+    settings = load_serial_settings()
+
+    assert settings.device == "/dev/pylontech-console"
+    assert settings.baudrate == 57600
+
+
+@pytest.mark.parametrize("device", ["", "   "])
+def test_serial_rejects_empty_device(device: str) -> None:
+    with pytest.raises(ValidationError, match="device"):
+        SerialSettings(device=device)
 
 
 def clear_waveshare_environment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -357,3 +395,8 @@ def test_compose_passes_every_mqtt_contract_variable() -> None:
         for suffix in expected
         if f"PYLONTECH_MQTT_{suffix}:" in compose
     } == expected
+    SerialSettings,
+    TransportMode,
+    TransportSettings,
+    load_serial_settings,
+    load_transport_settings,

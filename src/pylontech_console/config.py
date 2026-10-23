@@ -1,4 +1,5 @@
 import math
+from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
@@ -12,6 +13,26 @@ from pydantic import (
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class TransportMode(str, Enum):
+    TCP = "tcp"
+    SERIAL = "serial"
+
+
+class TransportSettings(BaseSettings):
+    """Select the console transport without changing existing TCP defaults."""
+
+    model_config = SettingsConfigDict(env_prefix="PYLONTECH_", extra="ignore")
+
+    mode: TransportMode = Field(
+        default=TransportMode.TCP,
+        validation_alias="PYLONTECH_TRANSPORT",
+    )
+
+
+def load_transport_settings() -> TransportSettings:
+    return TransportSettings()
 
 
 class WaveshareSettings(BaseSettings):
@@ -32,6 +53,24 @@ def load_waveshare_settings() -> WaveshareSettings:
     """Load Waveshare settings from the process environment."""
 
     return WaveshareSettings()  # type: ignore[call-arg]
+
+
+class SerialSettings(BaseSettings):
+    """Validated settings for a directly attached USB-to-RS232 adapter."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="PYLONTECH_SERIAL_",
+        extra="ignore",
+    )
+
+    device: NonEmptyString
+    baudrate: int = Field(default=115200, ge=300, le=3_000_000)
+    connect_timeout_seconds: float = Field(default=5, gt=0)
+    response_timeout_seconds: float = Field(default=5, gt=0)
+
+
+def load_serial_settings() -> SerialSettings:
+    return SerialSettings()  # type: ignore[call-arg]
 
 
 def _validate_console_password(value: str) -> str:

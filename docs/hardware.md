@@ -80,15 +80,31 @@ the required network-security boundary.
 - published container architecture: `linux/amd64`;
 - optional MQTT broker provided by an ioBroker MQTT adapter.
 
+## USB serial reference pending field verification
+
+The implemented direct-serial deployment targets:
+
+- Raspberry Pi 4 or 5 with a 64-bit Linux operating system;
+- the published `linux/arm64` container image;
+- a genuine USB-to-RS232 adapter exposed below `/dev/serial/by-id/`;
+- 115200 baud, 8 data bits, no parity, 1 stop bit and no flow control;
+- non-privileged Docker device mapping and supplemental group access.
+
+The planned first hardware acceptance uses a Raspberry Pi 4 Model B with PoE
+HAT and a Pylontech US2000C/US3000C/US5000 console cable advertised with an
+FTDI FT231XS chipset. This records the test target, not a completed
+compatibility claim. It shall move to the verified section only after the
+hardware acceptance checklist in issue #62 succeeds.
+
 ## Not yet verified
 
 No compatibility claim is currently made for:
 
 - Pylontech models other than US2000, US2000C and US5000;
 - racks with a cell count other than 15 cells per module;
-- USB serial adapters or serial device servers other than the tested
-  Waveshare model;
-- container architectures other than `linux/amd64`;
+- direct USB serial operation until the Raspberry Pi hardware acceptance is
+  complete;
+- container architectures other than `linux/amd64` and `linux/arm64`;
 - direct CAN, RS485 battery protocol or inverter communication.
 
 Similar Pylontech products may expose related console commands, but they must
